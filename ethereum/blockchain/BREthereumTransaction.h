@@ -25,7 +25,7 @@ extern "C" {
 
 static inline BREthereumGas
 gasApplyLmitMargin (BREthereumGas gas) {
-    return ethGasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
 }
 
 /**
@@ -179,11 +179,6 @@ transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumNetwork network,
                      BREthereumRlpType type,
                      BRRlpCoder coder);
-
-extern BRRlpData
-transactionGetRlpData (BREthereumTransaction transaction,
-                       BREthereumNetwork network,
-                       BREthereumRlpType type);
 
 extern char *
 transactionGetRlpHexEncoded (BREthereumTransaction transaction,

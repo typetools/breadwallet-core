@@ -22,7 +22,7 @@
 #define encodeChar(u)           ((char)    _hexc(u))
 
 extern void
-hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
+decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
     //
     assert (0 == sourceLen % 2);
     assert (2 * targetLen == sourceLen);
@@ -33,22 +33,22 @@ hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
 }
 
 extern size_t
-hexDecodeLength (size_t stringLen) {
+decodeHexLength (size_t stringLen) {
     assert (0 == stringLen % 2);
     return stringLen/2;
 }
 
 extern uint8_t *
-hexDecodeCreate (size_t *targetLen, const char *source, size_t sourceLen) {
-    size_t length = hexDecodeLength(sourceLen);
+decodeHexCreate (size_t *targetLen, const char *source, size_t sourceLen) {
+    size_t length = decodeHexLength(sourceLen);
     if (NULL != targetLen) *targetLen = length;
     uint8_t *target = malloc (length);
-    hexDecode (target, length, source, sourceLen);
+    decodeHex (target, length, source, sourceLen);
     return target;
 }
 
 extern void
-hexEncode (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
+encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
     
     for (int i = 0; i < sourceLen; i++) {
@@ -59,21 +59,21 @@ hexEncode (char *target, size_t targetLen, const uint8_t *source, size_t sourceL
 }
 
 extern size_t
-hexEncodeLength(size_t byteArrayLen) {
+encodeHexLength(size_t byteArrayLen) {
     return 2 * byteArrayLen + 1;
 }
 
 extern char *
-hexEncodeCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen) {
-    size_t length = hexEncodeLength(sourceLen);
+encodeHexCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen) {
+    size_t length = encodeHexLength(sourceLen);
     if (NULL != targetLen) *targetLen = length;
     char *target = malloc (length);
-    hexEncode(target, length, source, sourceLen);
+    encodeHex(target, length, source, sourceLen);
     return target;
 }
 
 extern int
-hexEncodeValidate (const char *number) {
+encodeHexValidate (const char *number) {
     // Number contains only hex digits, has an even number and has at least two.
     if (NULL == number || '\0' == *number || 0 != strlen(number) % 2) return 0;
 

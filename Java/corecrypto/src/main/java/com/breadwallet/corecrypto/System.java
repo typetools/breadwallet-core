@@ -9,8 +9,11 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.corenative.crypto.BRCryptoClient;
-import com.breadwallet.corenative.crypto.BRCryptoClientCallbackState;
+import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
+import com.breadwallet.corenative.crypto.BRCryptoCWMClientBtc;
+import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
+import com.breadwallet.corenative.crypto.BRCryptoCWMClientEth;
+import com.breadwallet.corenative.crypto.BRCryptoCWMClientGen;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
@@ -87,6 +90,7 @@ import com.breadwallet.crypto.migration.TransactionBlob;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -143,6 +147,33 @@ final class System implements com.breadwallet.crypto.System {
     // Keep a static reference to the callbacks so that they are never GC'ed
     //
 
+    private static final BRCryptoCWMClientBtc CWM_CLIENT_BTC = new BRCryptoCWMClientBtc(
+            System::btcGetBlockNumber,
+            System::btcGetTransactions,
+            System::btcSubmitTransaction
+    );
+
+    private static final BRCryptoCWMClientEth CWM_CLIENT_ETH = new BRCryptoCWMClientEth(
+            System::ethGetEtherBalance,
+            System::ethGetTokenBalance,
+            System::ethGetGasPrice,
+            System::ethEstimateGas,
+            System::ethSubmitTransaction,
+            System::ethGetTransactions,
+            System::ethGetLogs,
+            System::ethGetBlocks,
+            System::ethGetTokens,
+            System::ethGetBlockNumber,
+            System::ethGetNonce
+    );
+
+    private static final BRCryptoCWMClientGen CWM_CLIENT_GEN = new BRCryptoCWMClientGen(
+            System::genGetBlockNumber,
+            System::genGetTransactions,
+            System::genGetTransfers,
+            System::genSubmitTransaction
+    );
+
     private static final BRCryptoCWMListener.WalletManagerEventCallback CWM_LISTENER_WALLET_MANAGER_CALLBACK = System::walletManagerEventCallback;
     private static final BRCryptoCWMListener.WalletEventCallback CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
     private static final BRCryptoCWMListener.TransferEventCallback CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
@@ -175,18 +206,10 @@ final class System implements com.breadwallet.crypto.System {
                 CWM_LISTENER_WALLET_CALLBACK,
                 CWM_LISTENER_TRANSFER_CALLBACK);
 
-        BRCryptoClient cwmClient = new BRCryptoClient(context,
-                System::getBalance,
-                System::getBlockNumber,
-                System::getTransactions,
-                System::getTransfers,
-                System::submitTransaction,
-
-                System::ethGetGasPrice,
-                System::ethEstimateGas,
-                System::ethGetBlocks,
-                System::ethGetTokens,
-                System::ethGetNonce);
+        BRCryptoCWMClient cwmClient = new BRCryptoCWMClient(context,
+                CWM_CLIENT_BTC,
+                CWM_CLIENT_ETH,
+                CWM_CLIENT_GEN);
 
         System system = new System(executor,
                 listener,
@@ -329,7 +352,7 @@ final class System implements com.breadwallet.crypto.System {
     private final BlockchainDb query;
     private final Cookie context;
     private final BRCryptoCWMListener cwmListener;
-    private final BRCryptoClient cwmClient;
+    private final BRCryptoCWMClient cwmClient;
 
     private final Set<Network> networks;
     private final Set<WalletManager> walletManagers;
@@ -344,7 +367,7 @@ final class System implements com.breadwallet.crypto.System {
                    BlockchainDb query,
                    Cookie context,
                    BRCryptoCWMListener cwmListener,
-                   BRCryptoClient cwmClient) {
+                   BRCryptoCWMClient cwmClient) {
         this.executor = executor;
         this.listener = listener;
         this.callbackCoordinator = new SystemCallbackCoordinator(executor);
@@ -592,54 +615,58 @@ final class System implements com.breadwallet.crypto.System {
 
         WalletMigrator migrator = maybeMigrator.get();
 
-        for (TransactionBlob blob: transactionBlobs) {
-            Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) {
-                throw new MigrateTransactionError();
+        try {
+            for (TransactionBlob blob : transactionBlobs) {
+                Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
+                if (!maybeBtc.isPresent()) {
+                    throw new MigrateTransactionError();
+                }
+
+                TransactionBlob.Btc btc = maybeBtc.get();
+
+                if (!migrator.handleTransactionAsBtc(
+                        btc.bytes,
+                        btc.blockHeight,
+                        btc.timestamp)) {
+                    throw new MigrateTransactionError();
+                }
             }
 
-            TransactionBlob.Btc btc = maybeBtc.get();
+            for (BlockBlob blob : blockBlobs) {
+                Optional<BlockBlob.Btc> maybeBtc = blob.asBtc();
+                if (!maybeBtc.isPresent()) {
+                    throw new MigrateBlockError();
+                }
 
-            if (!migrator.handleTransactionAsBtc(
-                    btc.bytes,
-                    btc.blockHeight,
-                    btc.timestamp)) {
-                throw new MigrateTransactionError();
-            }
-        }
+                BlockBlob.Btc btc = maybeBtc.get();
 
-        for (BlockBlob blob: blockBlobs) {
-            Optional<BlockBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) {
-                throw new MigrateBlockError();
-            }
-
-            BlockBlob.Btc btc = maybeBtc.get();
-
-            if (!migrator.handleBlockAsBtc(
-                    btc.block,
-                    btc.height)) {
-                throw new MigrateBlockError();
-            }
-        }
-
-        for (PeerBlob blob: peerBlobs) {
-            Optional<PeerBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) {
-                throw new MigratePeerError();
+                if (!migrator.handleBlockAsBtc(
+                        btc.block,
+                        btc.height)) {
+                    throw new MigrateBlockError();
+                }
             }
 
-            PeerBlob.Btc btc = maybeBtc.get();
-            // On a `nil` timestamp, by definition skip out, don't migrate this blob
-            if (btc.timestamp == null) continue;
+            for (PeerBlob blob : peerBlobs) {
+                Optional<PeerBlob.Btc> maybeBtc = blob.asBtc();
+                if (!maybeBtc.isPresent()) {
+                    throw new MigratePeerError();
+                }
 
-            if (!migrator.handlePeerAsBtc(
-                    btc.address,
-                    btc.port,
-                    btc.services,
-                    btc.timestamp)) {
-                throw new MigratePeerError();
+                PeerBlob.Btc btc = maybeBtc.get();
+                // On a `nil` timestamp, by definition skip out, don't migrate this blob
+                if (btc.timestamp == null) continue;
+
+                if (!migrator.handlePeerAsBtc(
+                        btc.address,
+                        btc.port,
+                        btc.services,
+                        btc.timestamp)) {
+                    throw new MigratePeerError();
+                }
             }
+        } finally {
+            migrator.release();
         }
     }
 
@@ -1563,78 +1590,7 @@ final class System implements com.breadwallet.crypto.System {
 
     // BTC client
 
-    private static void getBalance(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
-                                   List<String> addresses,
-                                   String issuer) {
-        EXECUTOR_CLIENT.execute(() -> {
-            try {
-                Log.log(Level.FINE, "BRCryptoCWMEthGetTokenBalanceCallback");
-
-                Optional<System> optSystem = getSystem(context);
-                if (optSystem.isPresent()) {
-                    System system = optSystem.get();
-
-                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
-                    if (optWalletManager.isPresent()) {
-                        WalletManager walletManager = optWalletManager.get();
-
-                        switch (walletManager.getNetwork().getType()) {
-                            case ETH:
-                                String networkName = walletManager.getNetwork().getNetworkNameETH();
-
-                                if (null == issuer) {
-                                    system.query.getBalanceAsEth(networkName, addresses.get(0), new CompletionHandler<String, QueryError>() {
-                                        @Override
-                                        public void handleData(String balance) {
-                                            Log.log(Level.FINE, "BRCryptoCWMEthGetEtherBalanceCallback: succeeded");
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetBalanceSuccess(callbackState, balance);
-                                        }
-
-                                        @Override
-                                        public void handleError(QueryError error) {
-                                            Log.log(Level.SEVERE, "BRCryptoCWMEthGetEtherBalanceCallback: failed", error);
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetBalanceFailure(callbackState);
-                                        }
-                                    });
-                                } else {
-                                    system.query.getBalanceAsTok(networkName, addresses.get(0), issuer, new CompletionHandler<String, QueryError>() {
-                                        @Override
-                                        public void handleData(String balance) {
-                                            Log.log(Level.FINE, "BRCryptoCWMEthGetTokenBalanceCallback: succeeded");
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetBalanceSuccess(callbackState, balance);
-                                        }
-
-                                        @Override
-                                        public void handleError(QueryError error) {
-                                            Log.log(Level.SEVERE, "BRCryptoCWMEthGetTokenBalanceCallback: failed", error);
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetBalanceFailure(callbackState);
-                                        }
-                                    });
-                                }
-                                break;
-
-                            default:
-                                walletManager.getCoreBRCryptoWalletManager().announceGetBalanceFailure(callbackState);
-                                break;
-                        }
-
-                    } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetTokenBalanceCallback: missing manager");
-                        coreWalletManager.announceGetBalanceFailure(callbackState);
-                    }
-
-                } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetTokenBalanceCallback: missing system");
-                    coreWalletManager.announceGetBalanceFailure(callbackState);
-                }
-            } finally {
-                coreWalletManager.give();
-            }
-        });
-    }
-
-
-    private static void getBlockNumber(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState) {
+    private static void btcGetBlockNumber(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 Log.log(Level.FINE, "BRCryptoCWMBtcGetBlockNumberCallback");
@@ -1647,64 +1603,45 @@ final class System implements com.breadwallet.crypto.System {
                     if (optWalletManager.isPresent()) {
                         WalletManager walletManager = optWalletManager.get();
 
-                        switch (walletManager.getNetwork().getType()) {
-                            case ETH:
-                                String networkName = walletManager.getNetwork().getNetworkNameETH();
+                        system.query.getBlockchain(walletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
+                            @Override
+                            public void handleData(Blockchain blockchain) {
+                                Optional<UnsignedLong> maybeBlockHeight = blockchain.getBlockHeight();
+                                if (maybeBlockHeight.isPresent()) {
+                                    UnsignedLong blockchainHeight = maybeBlockHeight.get();
+                                    Log.log(Level.FINE, String.format("BRCryptoCWMBtcGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
+                                    walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberSuccess(callbackState, blockchainHeight);
+                                } else {
+                                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: failed with missing block height");
+                                    walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
+                                }
+                            }
 
-                                system.query.getBlockNumberAsEth(networkName, new CompletionHandler<String, QueryError>() {
-                                    @Override
-                                    public void handleData(String number) {
-                                        Log.log(Level.FINE, "BRCryptoCWMEthGetBlockNumberCallback: succeeded");
-                                        walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberSuccess(callbackState, number);
-                                    }
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
+                            }
+                        });
 
-                                    @Override
-                                    public void handleError(QueryError error) {
-                                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlockNumberCallback: failed", error);
-                                        walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
-                                    }
-                                });
-                                break;
-
-                            default:
-                                system.query.getBlockchain(walletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
-                                    @Override
-                                    public void handleData(Blockchain blockchain) {
-                                        Optional<UnsignedLong> maybeBlockHeight = blockchain.getBlockHeight();
-                                        if (maybeBlockHeight.isPresent()) {
-                                            UnsignedLong blockchainHeight = maybeBlockHeight.get();
-                                            Log.log(Level.FINE, String.format("BRCryptoCWMBtcGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberSuccess(callbackState, blockchainHeight);
-                                        } else {
-                                            Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: failed with missing block height");
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
-                                        }
-                                    }
-
-                                    @Override
-                                    public void handleError(QueryError error) {
-                                        Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: failed", error);
-                                        walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
-                                    }
-                                });
-                        }
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: missing manager");
-                        coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMBtcGetBlockNumberCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: missing system");
-                    coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMBtcGetBlockNumberCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlockNumberFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
         });
     }
 
-    private static void getTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
-                                        List<String> addresses, String currency, long begBlockNumber, long endBlockNumber) {
+    private static void btcGetTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                    List<String> addresses, long begBlockNumber, long endBlockNumber) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
@@ -1729,41 +1666,43 @@ final class System implements com.breadwallet.crypto.System {
                                 new CompletionHandler<List<Transaction>, QueryError>() {
                                     @Override
                                     public void handleData(List<Transaction> transactions) {
+                                        boolean success = false;
                                         Log.log(Level.FINE, "BRCryptoCWMBtcGetTransactionsCallback received transactions");
 
-                                        for (Transaction transaction : transactions) {
-                                            Optional<byte[]> optRaw = transaction.getRaw();
-                                            if (!optRaw.isPresent()) {
-                                                Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback completing with missing raw bytes");
-                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
-                                                return;
+                                        try {
+                                            for (Transaction transaction : transactions) {
+                                                Optional<byte[]> optRaw = transaction.getRaw();
+                                                if (!optRaw.isPresent()) {
+                                                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback completing with missing raw bytes");
+                                                    return;
+                                                }
+
+                                                UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
+                                                UnsignedLong timestamp =
+                                                        transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
+                                                BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
+                                                        : (transaction.getStatus().equals("submitted")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                        : (transaction.getStatus().equals("failed")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
+                                                        : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED)));  // Query API error
+
+                                                if (status != BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED) {
+                                                    Log.log(Level.FINE,
+                                                            "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
+                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemBtc(callbackState, status, optRaw.get(), timestamp, blockHeight);
+                                                } else {
+                                                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback received an unknown status, completing with failure");
+                                                    return;
+                                                }
                                             }
 
-                                            UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
-                                            UnsignedLong timestamp =
-                                                    transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
-                                            BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
-                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
-                                                    : (transaction.getStatus().equals("submitted")
-                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
-                                                    : (transaction.getStatus().equals("failed")
-                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
-                                                    : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED)));  // Query API error
-
-                                            if (status != BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED) {
-                                                Log.log(Level.FINE,
-                                                        "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
-                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItem(callbackState, status, optRaw.get(), timestamp, blockHeight);
-                                            }
-                                            else {
-                                                Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback received an unknown status, completing with failure");
-                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
-
-                                            }
+                                            success = true;
+                                            Log.log(Level.FINE, "BRCryptoCWMBtcGetTransactionsCallback: complete");
+                                        } finally {
+                                            walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, success);
                                         }
-
-                                        Log.log(Level.FINE, "BRCryptoCWMBtcGetTransactionsCallback: complete");
-                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, true);
                                     }
 
                                     @Override
@@ -1774,189 +1713,23 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback: missing manager");
-                        coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                        throw new IllegalStateException("BRCryptoCWMBtcGetTransactionsCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback: missing system");
-                    coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                    throw new IllegalStateException("BRCryptoCWMBtcGetTransactionsCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransactionsComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
         });
     }
 
-    private static void getTransfers(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
-                                     List<String> addresses, String currency, long begBlockNumber, long endBlockNumber) {
-        EXECUTOR_CLIENT.execute(() -> {
-            try {
-                UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
-                UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
-
-                Log.log(Level.FINE, String.format("BRCryptoCWMGenGetTransfersCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
-
-                Optional<System> optSystem = getSystem(context);
-                if (optSystem.isPresent()) {
-                    System system = optSystem.get();
-
-                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
-                    if (optWalletManager.isPresent()) {
-                        WalletManager walletManager = optWalletManager.get();
-
-                        switch (walletManager.getNetwork().getType()) {
-                            case ETH:
-                                String networkName = walletManager.getNetwork().getNetworkNameETH();
-
-                                if (null == currency || !currency.equals("__native__")) {
-                                    // The 'address' here must be 32-bytes/64-chars, 0x-prefixed.
-                                    // We are passed in 20-bytes/40-chars
-                                    String address = "0x000000000000000000000000" + addresses.get(0).substring(2);
-                                    String event   = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-
-                                    system.query.getLogsAsEth(networkName, currency, address, event,
-                                            UnsignedLong.fromLongBits(begBlockNumber),
-                                            UnsignedLong.fromLongBits(endBlockNumber),
-                                            new CompletionHandler<List<EthLog>, QueryError>() {
-                                                @Override
-                                                public void handleData(List<EthLog> logs) {
-                                                    Log.log(Level.FINE, "BRCryptoCWMEthGetLogsCallback: succeeded");
-                                                    for (EthLog log : logs) {
-                                                        walletManager.getCoreBRCryptoWalletManager().announceGetLogsItem(
-                                                                callbackState,
-                                                                log.getHash(),
-                                                                log.getContract(),
-                                                                log.getTopics(),
-                                                                log.getData(),
-                                                                log.getGasPrice(),
-                                                                log.getGasUsed(),
-                                                                log.getLogIndex(),
-                                                                log.getBlockNumber(),
-                                                                log.getBlockTransactionIndex(),
-                                                                log.getBlockTimestamp());
-                                                    }
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetLogsComplete(callbackState, true);
-                                                }
-
-                                                @Override
-                                                public void handleError(QueryError error) {
-                                                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetLogsCallback: failed", error);
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetLogsComplete(callbackState, false);
-                                                }
-                                            });
-
-
-                                }
-                                else {
-                                    system.query.getTransactionsAsEth(networkName, addresses.get(0),
-                                            UnsignedLong.fromLongBits(begBlockNumber),
-                                            UnsignedLong.fromLongBits(endBlockNumber),
-                                            new CompletionHandler<List<EthTransaction>, QueryError>() {
-                                                @Override
-                                                public void handleData(List<EthTransaction> transactions) {
-                                                    Log.log(Level.FINE, "BRCryptoCWMEthGetTransactionsCallback: succeeded");
-                                                    for (EthTransaction tx : transactions) {
-                                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemEth(
-                                                                callbackState,
-                                                                tx.getHash(),
-                                                                tx.getSourceAddr(),
-                                                                tx.getTargetAddr(),
-                                                                tx.getContractAddr(),
-                                                                tx.getAmount(),
-                                                                tx.getGasLimit(),
-                                                                tx.getGasPrice(),
-                                                                tx.getData(),
-                                                                tx.getNonce(),
-                                                                tx.getGasUsed(),
-                                                                tx.getBlockNumber(),
-                                                                tx.getBlockHash(),
-                                                                tx.getBlockConfirmations(),
-                                                                tx.getBlockTransactionIndex(),
-                                                                tx.getBlockTimestamp(),
-                                                                tx.getIsError());
-                                                    }
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, true);
-                                                }
-
-                                                @Override
-                                                public void handleError(QueryError error) {
-                                                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetTransactionsCallback: failed", error);
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
-                                                }
-                                            });
-                                }
-                                break;
-
-                            default:
-                                system.query.getTransactions(walletManager.getNetwork().getUids(), addresses, begBlockNumberUnsigned,
-                                        endBlockNumberUnsigned, false,
-                                        false, new CompletionHandler<List<Transaction>, QueryError>() {
-                                            @Override
-                                            public void handleData(List<Transaction> transactions) {
-                                                Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback received transfers");
-                                                List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> merged;
-
-                                                for (Transaction transaction : transactions) {
-                                                    UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
-                                                    UnsignedLong timestamp = transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
-
-                                                    BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
-                                                            ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
-                                                            : (transaction.getStatus().equals("submitted")
-                                                            ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
-                                                            : (transaction.getStatus().equals("failed")
-                                                            ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
-                                                            : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED)));  // Query API error
-
-
-                                                    merged = System.mergeTransfers(transaction, addresses);
-                                                    for (ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String> o : merged) {
-                                                        Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback  announcing " + o.o1.getId());
-                                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState, status,
-                                                                transaction.getHash(),
-                                                                o.o1.getId(),
-                                                                o.o1.getFromAddress().orNull(),
-                                                                o.o1.getToAddress().orNull(),
-                                                                o.o1.getAmount().getAmount(),
-                                                                o.o1.getAmount().getCurrencyId(),
-                                                                o.o2,
-                                                                timestamp,
-                                                                blockHeight,
-                                                                o.o1.getMeta());
-                                                    }
-                                                }
-
-                                                Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback : complete");
-                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransfersComplete(callbackState, true);
-                                            }
-
-                                            @Override
-                                            public void handleError(QueryError error) {
-                                                Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback  received an error, completing with failure", error);
-                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransfersComplete(callbackState, false);
-                                            }
-                                        });
-                                break;
-                        }
-
-                    } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback : missing manager");
-                        coreWalletManager.announceGetTransfersComplete(callbackState, false);
-                    }
-
-                } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback : missing system");
-                    coreWalletManager.announceGetTransfersComplete(callbackState, false);
-                }
-            } finally {
-                coreWalletManager.give();
-            }
-        });
-    }
-
-    private static void submitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
-                                          byte[] transaction, String hashAsHex) {
+    private static void btcSubmitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                             byte[] transaction, String hashAsHex) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 Log.log(Level.FINE, "BRCryptoCWMBtcSubmitTransactionCallback");
@@ -1969,51 +1742,30 @@ final class System implements com.breadwallet.crypto.System {
                     if (optWalletManager.isPresent()) {
                         WalletManager walletManager = optWalletManager.get();
 
-                        switch (walletManager.getNetwork().getType()) {
-                            case ETH:
-                                String networkName = walletManager.getNetwork().getNetworkNameETH();
-                                String transactionHexEncoded = "0x" + Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.HEX)
-                                        .encode(transaction).get();
+                        system.query.createTransaction(walletManager.getNetwork().getUids(), hashAsHex, transaction, new CompletionHandler<Void, QueryError>() {
+                            @Override
+                            public void handleData(Void data) {
+                                Log.log(Level.FINE, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
+                                walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferSuccess(callbackState);
+                            }
 
-                                system.query.submitTransactionAsEth(networkName, transactionHexEncoded, new CompletionHandler<String, QueryError>() {
-                                    @Override
-                                    public void handleData(String hash) {
-                                        Log.log(Level.FINE, "BRCryptoCWMEthSubmitTransactionCallback: succeeded");
-                                        walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferSuccess(callbackState, hash);
-                                    }
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMBtcSubmitTransactionCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferFailure(callbackState);
+                            }
+                        });
 
-                                    @Override
-                                    public void handleError(QueryError error) {
-                                        Log.log(Level.SEVERE, "BRCryptoCWMEthSubmitTransactionCallback: failed", error);
-                                        walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferFailure(callbackState);
-                                    }
-                                });
-                                break;
-
-                            default:
-                                system.query.createTransaction(walletManager.getNetwork().getUids(), hashAsHex, transaction, new CompletionHandler<Void, QueryError>() {
-                                    @Override
-                                    public void handleData(Void data) {
-                                        Log.log(Level.FINE, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
-                                        walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferSuccess(callbackState);
-                                    }
-
-                                    @Override
-                                    public void handleError(QueryError error) {
-                                        Log.log(Level.SEVERE, "BRCryptoCWMBtcSubmitTransactionCallback: failed", error);
-                                        walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferFailure(callbackState);
-                                    }
-                                });
-                        }
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMBtcSubmitTransactionCallback: missing manager");
-                        coreWalletManager.announceSubmitTransferFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMBtcSubmitTransactionCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMBtcSubmitTransactionCallback: missing system");
-                    coreWalletManager.announceSubmitTransferFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMBtcSubmitTransactionCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceSubmitTransferFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -2022,7 +1774,95 @@ final class System implements com.breadwallet.crypto.System {
 
     // ETH client
 
-     private static void ethGetGasPrice(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
+    private static void ethGetEtherBalance(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                    String networkName, String address) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, "BRCryptoCWMEthGetEtherBalanceCallback");
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getBalanceAsEth(networkName, address, new CompletionHandler<String, QueryError>() {
+                            @Override
+                            public void handleData(String balance) {
+                                Log.log(Level.FINE, "BRCryptoCWMEthGetEtherBalanceCallback: succeeded");
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBalanceSuccess(callbackState, balance);
+                            }
+
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMEthGetEtherBalanceCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBalanceFailure(callbackState);
+                            }
+                        });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMEthGetEtherBalanceCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMEthGetEtherBalanceCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBalanceFailure(callbackState);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void ethGetTokenBalance(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                    String networkName, String address, String tokenAddress) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, "BRCryptoCWMEthGetTokenBalanceCallback");
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getBalanceAsTok(networkName, address, tokenAddress, new CompletionHandler<String, QueryError>() {
+                            @Override
+                            public void handleData(String balance) {
+                                Log.log(Level.FINE, "BRCryptoCWMEthGetTokenBalanceCallback: succeeded");
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBalanceSuccess(callbackState, balance);
+                            }
+
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMEthGetTokenBalanceCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBalanceFailure(callbackState);
+                            }
+                        });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMEthGetTokenBalanceCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMEthGetTokenBalanceCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBalanceFailure(callbackState);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void ethGetGasPrice(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
                                 String networkName) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
@@ -2051,21 +1891,22 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetGasPriceCallback: missing manager");
-                        coreWalletManager.announceGetGasPriceFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetGasPriceCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetGasPriceCallback: missing sytem");
-                    coreWalletManager.announceGetGasPriceFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetGasPriceCallback: missing sytem");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetGasPriceFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
         });
     }
 
-    private static void ethEstimateGas(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
+    private static void ethEstimateGas(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
                                 String networkName, String from, String to, String amount, String gasPrice, String data) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
@@ -2097,24 +1938,208 @@ final class System implements com.breadwallet.crypto.System {
                         // using the CRYPTO_ERROR_FAILED status code as this represents a situation where the system that this estimation
                         // was queued for, is now GC'ed. As a result, no one is really listening for this estimation so return an error
                         // code indicating failure and leave it at that.
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthEstimateGasCallback: missing manager");
-                        coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
+                        throw new IllegalStateException("BRCryptoCWMEthEstimateGasCallback: missing manager");
                     }
 
                 } else {
                     // using the CRYPTO_ERROR_FAILED status code as this represents a situation where the system that this estimation
                     // was queued for, is now GC'ed. As a result, no one is really listening for this estimation so return an error
                     // code indicating failure and leave it at that.
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthEstimateGasCallback: missing system");
-                    coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
+                    throw new IllegalStateException("BRCryptoCWMEthEstimateGasCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
             } finally {
                 coreWalletManager.give();
             }
         });
     }
-    
-    private static void ethGetBlocks(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
+
+    private static void ethSubmitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                      String networkName, String transaction) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, "BRCryptoCWMEthSubmitTransactionCallback");
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.submitTransactionAsEth(networkName, transaction, new CompletionHandler<String, QueryError>() {
+                            @Override
+                            public void handleData(String hash) {
+                                Log.log(Level.FINE, "BRCryptoCWMEthSubmitTransactionCallback: succeeded");
+                                walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferSuccess(callbackState, hash);
+                            }
+
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMEthSubmitTransactionCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceSubmitTransferFailure(callbackState);
+                            }
+                        });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMEthSubmitTransactionCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMEthSubmitTransactionCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceSubmitTransferFailure(callbackState);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void ethGetTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                    String networkName, String address, long begBlockNumber, long endBlockNumber) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, String.format("BRCryptoCWMEthGetTransactionsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getTransactionsAsEth(networkName, address, UnsignedLong.fromLongBits(begBlockNumber),
+                                UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthTransaction>, QueryError>() {
+                                    @Override
+                                    public void handleData(List<EthTransaction> transactions) {
+                                        boolean success = false;
+                                        Log.log(Level.FINE, "BRCryptoCWMEthGetTransactionsCallback: succeeded");
+
+                                        try {
+                                            for (EthTransaction tx : transactions) {
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemEth(
+                                                        callbackState,
+                                                        tx.getHash(),
+                                                        tx.getSourceAddr(),
+                                                        tx.getTargetAddr(),
+                                                        tx.getContractAddr(),
+                                                        tx.getAmount(),
+                                                        tx.getGasLimit(),
+                                                        tx.getGasPrice(),
+                                                        tx.getData(),
+                                                        tx.getNonce(),
+                                                        tx.getGasUsed(),
+                                                        tx.getBlockNumber(),
+                                                        tx.getBlockHash(),
+                                                        tx.getBlockConfirmations(),
+                                                        tx.getBlockTransactionIndex(),
+                                                        tx.getBlockTimestamp(),
+                                                        tx.getIsError());
+                                            }
+
+                                            success = true;
+                                        } finally {
+                                            walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, success);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void handleError(QueryError error) {
+                                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetTransactionsCallback: failed", error);
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
+                                    }
+                                });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMEthGetTransactionsCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMEthGetTransactionsCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void ethGetLogs(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                            String networkName, String contract, String address, String event, long begBlockNumber,
+                            long endBlockNumber) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, String.format("BRCryptoCWMEthGetLogsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getLogsAsEth(networkName, contract, address, event, UnsignedLong.fromLongBits(begBlockNumber),
+                                UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthLog>, QueryError>() {
+                                    @Override
+                                    public void handleData(List<EthLog> logs) {
+                                        boolean success = false;
+                                        Log.log(Level.FINE, "BRCryptoCWMEthGetLogsCallback: succeeded");
+
+                                        try {
+                                            for (EthLog log : logs) {
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetLogsItem(
+                                                        callbackState,
+                                                        log.getHash(),
+                                                        log.getContract(),
+                                                        log.getTopics(),
+                                                        log.getData(),
+                                                        log.getGasPrice(),
+                                                        log.getGasUsed(),
+                                                        log.getLogIndex(),
+                                                        log.getBlockNumber(),
+                                                        log.getBlockTransactionIndex(),
+                                                        log.getBlockTimestamp());
+                                            }
+
+                                            success = true;
+                                        } finally {
+                                            walletManager.getCoreBRCryptoWalletManager().announceGetLogsComplete(callbackState, success);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void handleError(QueryError error) {
+                                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetLogsCallback: failed", error);
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetLogsComplete(callbackState, false);
+                                    }
+                                });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMEthGetLogsCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMEthGetLogsCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetLogsComplete(callbackState, false);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void ethGetBlocks(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
                               String networkName, String address, int interests, long blockNumberStart,
                               long blockNumberStop) {
         EXECUTOR_CLIENT.execute(() -> {
@@ -2146,21 +2171,22 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlocksCallback: missing manager");
-                        coreWalletManager.announceGetBlocksFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetBlocksCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlocksCallback: missing system");
-                    coreWalletManager.announceGetBlocksFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetBlocksCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlocksFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
         });
     }
 
-    private static void ethGetTokens(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState) {
+    private static void ethGetTokens(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 Log.log(Level.FINE, "BREthereumClientHandlerGetTokens");
@@ -2176,19 +2202,26 @@ final class System implements com.breadwallet.crypto.System {
                         system.query.getTokensAsEth(new CompletionHandler<List<EthToken>, QueryError>() {
                             @Override
                             public void handleData(List<EthToken> tokens) {
+                                boolean success = false;
                                 Log.log(Level.FINE, "BREthereumClientHandlerGetTokens: succeeded");
-                                for (EthToken token : tokens) {
-                                    walletManager.getCoreBRCryptoWalletManager().announceGetTokensItem(
-                                            callbackState,
-                                            token.getAddress(),
-                                            token.getSymbol(),
-                                            token.getName(),
-                                            token.getDescription(),
-                                            token.getDecimals(),
-                                            token.getDefaultGasLimit().orNull(),
-                                            token.getDefaultGasPrice().orNull());
+
+                                try {
+                                    for (EthToken token : tokens) {
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetTokensItem(
+                                                callbackState,
+                                                token.getAddress(),
+                                                token.getSymbol(),
+                                                token.getName(),
+                                                token.getDescription(),
+                                                token.getDecimals(),
+                                                token.getDefaultGasLimit().orNull(),
+                                                token.getDefaultGasPrice().orNull());
+                                    }
+
+                                    success = true;
+                                } finally {
+                                    walletManager.getCoreBRCryptoWalletManager().announceGetTokensComplete(callbackState, success);
                                 }
-                                walletManager.getCoreBRCryptoWalletManager().announceGetTokensComplete(callbackState, true);
                             }
 
                             @Override
@@ -2199,21 +2232,66 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BREthereumClientHandlerGetTokens: missing manager");
-                        coreWalletManager.announceGetTokensComplete(callbackState, false);
+                        throw new IllegalStateException("BREthereumClientHandlerGetTokens: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BREthereumClientHandlerGetTokens: missing system");
-                    coreWalletManager.announceGetTokensComplete(callbackState, false);
+                    throw new IllegalStateException("BREthereumClientHandlerGetTokens: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTokensComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
         });
     }
 
-    private static void ethGetNonce(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
+    private static void ethGetBlockNumber(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                   String networkName) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, "BRCryptoCWMEthGetBlockNumberCallback");
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getBlockNumberAsEth(networkName, new CompletionHandler<String, QueryError>() {
+                            @Override
+                            public void handleData(String number) {
+                                Log.log(Level.FINE, "BRCryptoCWMEthGetBlockNumberCallback: succeeded");
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberSuccess(callbackState, number);
+                            }
+
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlockNumberCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
+                            }
+                        });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMEthGetBlockNumberCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMEthGetBlockNumberCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlockNumberFailure(callbackState);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void ethGetNonce(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
                              String networkName, String address) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
@@ -2242,14 +2320,243 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetNonceCallback: missing manager");
-                        coreWalletManager.announceGetNonceFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetNonceCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetNonceCallback: missing system");
-                    coreWalletManager.announceGetNonceFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetNonceCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetNonceFailure(callbackState);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    // GEN client
+
+    private static void genGetBlockNumber(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                Log.log(Level.FINE, "BRCryptoCWMGenGetBlockNumberCallback");
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getBlockchain(walletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
+                            @Override
+                            public void handleData(Blockchain blockchain) {
+                                Optional<UnsignedLong> maybeBlockHeight = blockchain.getBlockHeight();
+                                if (maybeBlockHeight.isPresent()) {
+                                    UnsignedLong blockchainHeight = maybeBlockHeight.get();
+                                    Log.log(Level.FINE, String.format("BRCryptoCWMGenGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
+                                    walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberSuccess(callbackState, blockchainHeight);
+                                } else {
+                                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetBlockNumberCallback: failed with missing block height");
+                                    walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
+                                }
+                            }
+
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.log(Level.SEVERE, "BRCryptoCWMGenGetBlockNumberCallback: failed", error);
+                                walletManager.getCoreBRCryptoWalletManager().announceGetBlockNumberFailure(callbackState);
+                            }
+                        });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMGenGetBlockNumberCallback: missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMGenGetBlockNumberCallback: missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlockNumberFailure(callbackState);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void genGetTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                           String address, long begBlockNumber, long endBlockNumber) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
+                UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
+
+                Log.log(Level.FINE, String.format("BRCryptoCWMGenGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getTransactions(
+                                walletManager.getNetwork().getUids(),
+                                Collections.singletonList(address),
+                                begBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : begBlockNumberUnsigned,
+                                endBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : endBlockNumberUnsigned,
+                                true,
+                                false,
+                                new CompletionHandler<List<Transaction>, QueryError>() {
+                                    @Override
+                                    public void handleData(List<Transaction> transactions) {
+                                        boolean success = false;
+                                        Log.log(Level.FINE, "BRCryptoCWMGenGetTransactionsCallback  received transactions");
+
+                                        try {
+                                            for (Transaction transaction : transactions) {
+                                                Optional<byte[]> optRaw = transaction.getRaw();
+                                                if (!optRaw.isPresent()) {
+                                                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback  completing with missing raw bytes");
+                                                    return;
+                                                }
+
+                                                UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
+                                                UnsignedLong timestamp =
+                                                        transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
+
+                                                BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
+                                                        : (transaction.getStatus().equals("submitted")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                        : (transaction.getStatus().equals("failed")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
+                                                        : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED))); // Query API error
+
+                                                if (status != BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED) {
+                                                    Log.log(Level.FINE,
+                                                            "BRCryptoCWMGenGetTransactionsCallback  announcing " + transaction.getId());
+                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemGen(callbackState, status, optRaw.get(), timestamp, blockHeight);
+                                                } else {
+                                                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback received an unknown status, completing with failure");
+                                                    return;
+                                                }
+                                            }
+
+                                            success = true;
+                                            Log.log(Level.FINE, "BRCryptoCWMGenGetTransactionsCallback : complete");
+                                        } finally {
+                                            walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, success);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void handleError(QueryError error) {
+                                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback  received an error, completing with failure", error);
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
+                                    }
+                                });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMGenGetTransactionsCallback : missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMGenGetTransactionsCallback : missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static void genGetTransfers(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                           String address, long begBlockNumber, long endBlockNumber) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
+                UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
+
+                Log.log(Level.FINE, String.format("BRCryptoCWMGenGetTransfersCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getTransactions(walletManager.getNetwork().getUids(), Collections.singletonList(address), begBlockNumberUnsigned,
+                                endBlockNumberUnsigned, false,
+                                false, new CompletionHandler<List<Transaction>, QueryError>() {
+                                    @Override
+                                    public void handleData(List<Transaction> transactions) {
+                                        boolean success = false;
+                                        Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback received transfers");
+                                        List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> merged;
+
+                                        try {
+                                            for (Transaction transaction : transactions) {
+                                                UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
+                                                UnsignedLong timestamp = transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
+
+                                                BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
+                                                        : (transaction.getStatus().equals("submitted")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                        : (transaction.getStatus().equals("failed")
+                                                        ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
+                                                        : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED))); // Query API error
+
+                                                merged = System.mergeTransfers(transaction, address);
+                                                for (ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String> o : merged) {
+                                                    Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback  announcing " + o.o1.getId());
+                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState, status,
+                                                            transaction.getHash(),
+                                                            o.o1.getId(),
+                                                            o.o1.getFromAddress().orNull(),
+                                                            o.o1.getToAddress().orNull(),
+                                                            o.o1.getAmount().getAmount(),
+                                                            o.o1.getAmount().getCurrencyId(),
+                                                            o.o2,
+                                                            timestamp,
+                                                            blockHeight,
+                                                            o.o1.getMeta());
+                                                }
+                                            }
+
+                                            success = true;
+                                            Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback : complete");
+                                        } finally {
+                                            walletManager.getCoreBRCryptoWalletManager().announceGetTransfersComplete(callbackState, success);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void handleError(QueryError error) {
+                                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback  received an error, completing with failure", error);
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransfersComplete(callbackState, false);
+                                    }
+                                });
+
+                    } else {
+                        throw new IllegalStateException("BRCryptoCWMGenGetTransfersCallback : missing manager");
+                    }
+
+                } else {
+                    throw new IllegalStateException("BRCryptoCWMGenGetTransfersCallback : missing system");
+                }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransfersComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -2266,7 +2573,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> mergeTransfers(Transaction transaction, List<String> addresses) {
+    private static List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> mergeTransfers(Transaction transaction, String address) {
         List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfers;
         List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfersWithFee;
         List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfersWithoutFee;
@@ -2274,9 +2581,7 @@ final class System implements com.breadwallet.crypto.System {
         com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transferWithFee;
 
         // Only consider transfers w/ `address`
-        transfers = new ArrayList<>(Collections2.filter(transaction.getTransfers(),
-                t -> addresses.contains(t.getFromAddress().orNull()) ||
-                        addresses.contains(t.getToAddress().orNull())));
+        transfers = new ArrayList<>(Collections2.filter(transaction.getTransfers(), t -> address.equals(t.getFromAddress().orNull()) || address.equals(t.getToAddress().orNull())));
 
         // Note for later: all transfers have a unique id
 
@@ -2342,7 +2647,7 @@ final class System implements com.breadwallet.crypto.System {
         return transfersMerged;
     }
 
-    private static void genSubmitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoClientCallbackState callbackState,
+    private static void genSubmitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
                                              byte[] transaction, String hashAsHex) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
@@ -2371,14 +2676,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMGenSubmitTransactionCallback: missing manager");
-                        coreWalletManager.announceSubmitTransferFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMGenSubmitTransactionCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMGenSubmitTransactionCallback: missing system");
-                    coreWalletManager.announceSubmitTransferFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMGenSubmitTransactionCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceSubmitTransferFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }

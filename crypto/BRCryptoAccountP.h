@@ -27,7 +27,6 @@ struct BRCryptoAccountRecord {
     BRMasterPubKey btc;
     BREthereumAccount eth;
     BRGenericAccount xrp;
-    BRGenericAccount hbar;
     // ...
 
     char *uids;

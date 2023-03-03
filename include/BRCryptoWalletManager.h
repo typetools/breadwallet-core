@@ -133,8 +133,6 @@ extern "C" {
         } u;
     } BRCryptoWalletManagerEvent;
 
-#define CRYPTO_NO_SYNC_TIMESTAMP        (NO_SYNC_TIMESTAMP)
-
     /// MARK: Listener
 
     typedef void *BRCryptoCWMListenerContext;
@@ -169,7 +167,7 @@ extern "C" {
     /// Can return NULL
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
-                               BRCryptoClient client,
+                               BRCryptoCWMClient client,
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
                                BRCryptoSyncMode mode,

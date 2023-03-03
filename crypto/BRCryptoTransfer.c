@@ -179,7 +179,7 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 
     // cache the values that require the ewm
     BREthereumAccount account = ewmGetAccount (ewm);
-    transfer->u.eth.accountAddress = ethAccountGetPrimaryAddress (account);
+    transfer->u.eth.accountAddress = accountGetPrimaryAddress (account);
 
     // This function `cryptoTransferCreateAsETH()` includes an argument as
     // `BRCryptoFeeBasis feeBasisEstimated` whereas the analogous function
@@ -292,19 +292,19 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
                 case CRYPTO_TRANSFER_RECOVERED:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 uint256Create(send));
+                                                 createUInt256(send));
                     break;
 
                 case CRYPTO_TRANSFER_SENT:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 uint256Create(send - fee - recv));
+                                                 createUInt256(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 uint256Create(recv));
+                                                 createUInt256(recv));
                     break;
 
                 default: assert(0);
@@ -315,17 +315,17 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumAmount ethAmount = ewmTransferGetAmount (transfer->u.eth.ewm,
                                                                transfer->u.eth.tid);
-            switch (ethAmountGetType(ethAmount)) {
+            switch (amountGetType(ethAmount)) {
                 case AMOUNT_ETHER:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 ethEtherGetValue(ethAmountGetEther(ethAmount), WEI));
+                                                 etherGetValue(amountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:
                     amount = cryptoAmountCreate (transfer->unit,
                                                isNegative,
-                                               ethAmountGetTokenQuantity(ethAmount).valueAsInteger);
+                                               amountGetTokenQuantity(ethAmount).valueAsInteger);
                     break;
 
                 default: assert(0);
@@ -466,11 +466,11 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
                 case CRYPTO_TRANSFER_RECOVERED:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
-                                               uint256Create(fee));
+                                               createUInt256(fee));
                 case CRYPTO_TRANSFER_SENT:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
-                                               uint256Create(fee));
+                                               createUInt256(fee));
                 case CRYPTO_TRANSFER_RECEIVED:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
@@ -570,8 +570,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             BREthereumAddress source = ewmTransferGetSource (ewm, tid);
             BREthereumAddress target = ewmTransferGetTarget (ewm, tid);
 
-            BREthereumBoolean accountIsSource = ethAddressEqual (source, transfer->u.eth.accountAddress);
-            BREthereumBoolean accountIsTarget = ethAddressEqual (target, transfer->u.eth.accountAddress);
+            BREthereumBoolean accountIsSource = addressEqual (source, transfer->u.eth.accountAddress);
+            BREthereumBoolean accountIsTarget = addressEqual (target, transfer->u.eth.accountAddress);
 
             if (accountIsSource == ETHEREUM_BOOLEAN_TRUE && accountIsTarget == ETHEREUM_BOOLEAN_TRUE) {
                 return CRYPTO_TRANSFER_RECOVERED;
@@ -609,7 +609,7 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
             BREthereumTransfer tid = transfer->u.eth.tid;
 
             BREthereumHash hash = ewmTransferGetOriginatingTransactionHash (ewm, tid);
-            return (ETHEREUM_BOOLEAN_TRUE == ethHashEqual(hash, ethHashCreateEmpty())
+            return (ETHEREUM_BOOLEAN_TRUE == hashEqual(hash, hashCreateEmpty())
                     ? NULL
                     : cryptoHashCreateAsETH (hash));
         }
@@ -876,11 +876,28 @@ extern BRCryptoTransferState
 cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                  uint64_t transactionIndex,
                                  uint64_t timestamp,
-                                 BRCryptoFeeBasis feeBasis) {
-    return (BRCryptoTransferState) {
+                                 BRCryptoFeeBasis feeBasis,
+                                 BRCryptoBoolean success,
+                                 const char *error) {
+    BRCryptoTransferState result = (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_INCLUDED,
-        { .included = { blockNumber, transactionIndex, timestamp, cryptoFeeBasisTake(feeBasis) }}
+        { .included = {
+            blockNumber,
+            transactionIndex,
+            timestamp,
+            cryptoFeeBasisTake(feeBasis),
+            success
+        }}
     };
+
+    memset (result.u.included.error, 0, CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+    if (CRYPTO_FALSE == success) {
+        strlcpy (result.u.included.error,
+                 (NULL == error ? "unknown error" : error),
+                 CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+    }
+
+    return result;
 }
 
 extern BRCryptoTransferState

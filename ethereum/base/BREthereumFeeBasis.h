@@ -29,20 +29,20 @@ typedef struct {
 } BREthereumFeeBasis;
 
 extern BREthereumFeeBasis
-ethFeeBasisCreate (BREthereumGas limit,
-                   BREthereumGasPrice price);
+feeBasisCreate (BREthereumGas limit,
+                BREthereumGasPrice price);
 
 extern BREthereumGas
-ethFeeBasisGetGasLimit (BREthereumFeeBasis basis);
+feeBasisGetGasLimit (BREthereumFeeBasis basis);
 
 extern BREthereumGasPrice
-ethFeeBasisGetGasPrice (BREthereumFeeBasis basis);
+feeBasisGetGasPrice (BREthereumFeeBasis basis);
 
 extern BREthereumEther
-ethFeeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow);
+feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow);
 
 extern BREthereumBoolean
-ethFeeBasisEqual (const BREthereumFeeBasis *feeBasis1,
-                  const BREthereumFeeBasis *feeBasis2);
+feeBasisEqual (const BREthereumFeeBasis *feeBasis1,
+               const BREthereumFeeBasis *feeBasis2);
 
 #endif /* BR_Ethereum_Fee_Basis_h */

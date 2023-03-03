@@ -66,21 +66,21 @@ rlpDataRelease (BRRlpData data);
 typedef struct BRRlpItemRecord *BRRlpItem;
 
 extern void
-rlpItemRelease (BRRlpCoder coder, BRRlpItem item);
+rlpReleaseItem (BRRlpCoder coder, BRRlpItem item);
 
 /**
  * Convet the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
  * represent a list (thus `data` is 'walked' to identify subitems, including sublists).
  */
 extern BRRlpItem
-rlpDataGetItem (BRRlpCoder coder, BRRlpData data);
+rlpGetItem (BRRlpCoder coder, BRRlpData data);
 
 /**
  * Return the RLP data associated with `item`.  You own this data and must call
  * rlpDataRelese().
  */
 extern BRRlpData
-rlpItemGetData (BRRlpCoder coder, BRRlpItem item);
+rlpGetData (BRRlpCoder coder, BRRlpItem item);
 
 /**
  * Return the RLP data associated with `item`.  You DO NOT own this data; you must not
@@ -88,7 +88,7 @@ rlpItemGetData (BRRlpCoder coder, BRRlpItem item);
  * pointer into the `coder` memory and will become invalid on coder release.
  */
 extern BRRlpData
-rlpItemGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 
 /**
  * Extract the `bytes` and `bytesCount` for `item`.  The returns `bytes` will be the complete
@@ -195,10 +195,10 @@ rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount);
 // Show
 //
 extern void
-rlpItemShow (BRRlpCoder coder, BRRlpItem item, const char *topic);
+rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic);
 
 extern void
-rlpDataShow (BRRlpData data, const char *topic);
+rlpShow (BRRlpData data, const char *topic);
 
 //
 // Decode RLPData directly to numbers

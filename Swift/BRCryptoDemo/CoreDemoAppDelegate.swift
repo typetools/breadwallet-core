@@ -121,8 +121,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             "btc" : .api_only,
             "eth" : .api_only,
             "bch" : .p2p_only,
-            "xrp" : .api_only,
-            "hbar" : .api_only
+            "xrp" : .api_only
             ]
         if mainnet {
 
@@ -368,8 +367,8 @@ extension Network {
         case .bch: return (isMainnet ? "bitcoincash" : "bchtest")
         case .eth: return "ethereum"
         case .xrp: return "ripple"
-        case .hbar: return "hedera"
-//        case .xlm:  return "stellar"
+//        case .hbar: return "Hedera"
+//        case .xlm:  return "Stellar"
         }
     }
 }

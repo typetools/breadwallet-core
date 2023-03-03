@@ -108,8 +108,6 @@ public final class WalletManager: Equatable, CustomStringConvertible {
 
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
-        let listener = system.listener
-
         var walletsCount: size_t = 0
         let walletsPtr = cryptoWalletManagerGetWallets(core, &walletsCount);
         defer { if let ptr = walletsPtr { free (ptr) } }
@@ -262,7 +260,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                 currencies: Set<Currency>,
                                 storagePath: String,
                                 listener: BRCryptoCWMListener,
-                                client: BRCryptoClient) {
+                                client: BRCryptoCWMClient) {
         guard let core = cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,

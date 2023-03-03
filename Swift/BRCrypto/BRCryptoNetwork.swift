@@ -282,17 +282,6 @@ extension Network: Hashable {
     }
 }
 
-extension Network {
-    internal var ethNetworkName: String? {
-        if case .eth = type {
-            return cryptoNetworkGetETHNetworkName (core)
-                .map { asUTF8String($0) }
-        }
-        else {
-            return nil
-        }
-    }
-}
 ///
 /// Try as we might, certain functionality outside of WalletKit will require knowing the
 /// canonical network type as: BTC, BCH, ETH, etc.  The NetworkType provides this information.
@@ -308,7 +297,7 @@ public enum NetworkType: CustomStringConvertible {
     case bch
     case eth
     case xrp
-    case hbar
+//    case hbar
 //    case xlm
 
     internal init (core: BRCryptoNetworkCanonicalType) {
@@ -317,7 +306,7 @@ public enum NetworkType: CustomStringConvertible {
         case CRYPTO_NETWORK_TYPE_BCH:  self = .bch
         case CRYPTO_NETWORK_TYPE_ETH:  self = .eth
         case CRYPTO_NETWORK_TYPE_XRP:  self = .xrp
-        case CRYPTO_NETWORK_TYPE_HBAR: self = .hbar
+//        case CRYPTO_NETWORK_TYPE_HBAR: self = .hbar
 //        case CRYPTO_NETWORK_TYPE_XLM:  self = .xlm
         default: preconditionFailure()
         }
@@ -329,8 +318,8 @@ public enum NetworkType: CustomStringConvertible {
         case .bch: return CRYPTO_NETWORK_TYPE_BCH
         case .eth: return CRYPTO_NETWORK_TYPE_ETH
         case .xrp: return CRYPTO_NETWORK_TYPE_XRP
-        case .hbar: return CRYPTO_NETWORK_TYPE_HBAR
-//        case .xml: return CRYPTO_NETWORK_TYPE_XLM
+//        case .hbar: return CRYPTO_NETWORK_TYPE_HBAR
+//        case .hbar: return CRYPTO_NETWORK_TYPE_XLM
         }
     }
 

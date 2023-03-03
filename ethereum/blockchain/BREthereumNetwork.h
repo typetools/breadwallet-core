@@ -34,19 +34,19 @@ typedef struct BREthereumNetworkRecord *BREthereumNetwork;
 typedef int BREthereumChainId;  // 'Officially' UInt256
 
 extern const char *
-ethNetworkGetName (BREthereumNetwork network);
+networkGetName (BREthereumNetwork network);
 
 extern char *
-ethNetworkCopyNameAsLowercase (BREthereumNetwork network);
+networkCopyNameAsLowercase (BREthereumNetwork network);
 
 extern BREthereumChainId
-ethNetworkGetChainId (BREthereumNetwork network);
+networkGetChainId (BREthereumNetwork network);
 
 extern BREthereumHash
-ethNetworkGetGenesisBlockHeaderHash (BREthereumNetwork network);
+networkGetGenesisBlockHeaderHash (BREthereumNetwork network);
 
 extern BREthereumHash
-ethNetworkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network);
+networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network);
 
 
 /**
@@ -56,34 +56,34 @@ ethNetworkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network);
  * @return A NULL terminated array of strings
  */
 extern const char**
-ethNetworkGetSeeds (BREthereumNetwork network);
+networkGetSeeds (BREthereumNetwork network);
 
 extern size_t
-ethNetworkGetSeedsCount (BREthereumNetwork network);
+networkGetSeedsCount (BREthereumNetwork network);
 
 /**
  * BRD Enodes - backup to a failed 'seeds' query
  */
 extern const char**
-ethNetworkGetEnodesBRD (BREthereumNetwork network);
+networkGetEnodesBRD (BREthereumNetwork network);
 
 /**
  * Community Enocdes - backup to a failed 'seeds' query
  */
 extern const char**
-ethNetworkGetEnodesCommunity (BREthereumNetwork network);
+networkGetEnodesCommunity (BREthereumNetwork network);
 
 /**
  * Local Enodes
  */
 extern const char**
-ethNetworkGetEnodesLocal (BREthereumNetwork network, int parity);
+networkGetEnodesLocal (BREthereumNetwork network, int parity);
 
 /// MARK: - Networks
 
-extern const BREthereumNetwork ethNetworkMainnet;
-extern const BREthereumNetwork ethNetworkTestnet;
-extern const BREthereumNetwork ethNetworkRinkeby;
+extern const BREthereumNetwork ethereumMainnet;
+extern const BREthereumNetwork ethereumTestnet;
+extern const BREthereumNetwork ethereumRinkeby;
 
 #ifdef __cplusplus
 }

@@ -20,27 +20,27 @@
 // Address Raw
 //
 extern BREthereumAddress
-ethAddressCreate (const char *address) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ethAddressValidateString(address))) return EMPTY_ADDRESS_INIT;
+addressCreate (const char *address) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(addressValidateString(address))) return EMPTY_ADDRESS_INIT;
 
     BREthereumAddress raw;
     if (0 == strncmp ("0x", address, 2)) address = &address[2];
-    hexDecode(raw.bytes, sizeof(raw.bytes), address, strlen(address));
+    decodeHex(raw.bytes, sizeof(raw.bytes), address, strlen(address));
     return raw;
 }
 
 extern BREthereumBoolean
-ethAddressValidateString(const char *string) {
+addressValidateString(const char *string) {
     return 42 == strlen(string)
            && '0' == string[0]
            && 'x' == string[1]
-           && hexEncodeValidate (&string[2])
+           && encodeHexValidate (&string[2])
            ? ETHEREUM_BOOLEAN_TRUE
            : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumAddress
-ethAddressCreateKey (const BRKey *key) {
+addressCreateKey (const BRKey *key) {
     BREthereumAddress address;
 
     // We interrupt your regularly scheduled programming...
@@ -74,14 +74,14 @@ ethAddressCreateKey (const BRKey *key) {
 
 
 extern char *
-ethAddressGetEncodedString (BREthereumAddress address, int useChecksum) {
+addressGetEncodedString (BREthereumAddress address, int useChecksum) {
     char *string = calloc (1, ADDRESS_ENCODED_CHARS);
-    ethAddressFillEncodedString(address, useChecksum, string);
+    addressFillEncodedString(address, useChecksum, string);
     return string;
 }
 
 extern void
-ethAddressFillEncodedString (BREthereumAddress address,
+addressFillEncodedString (BREthereumAddress address,
                           int useChecksum,
                           char *string) {
 
@@ -90,7 +90,7 @@ ethAddressFillEncodedString (BREthereumAddress address,
     string[1] = 'x';
 
     // Offset '2' into address->string and account for the '\0' terminator.
-    hexEncode(&string[2], 40 + 1, address.bytes, 20);
+    encodeHex(&string[2], 40 + 1, address.bytes, 20);
 
     if (!useChecksum) return;
 
@@ -139,7 +139,7 @@ ethAddressFillEncodedString (BREthereumAddress address,
     for (int i = 0; i < checksumAddrLen; i++) {
         // We should hex-encode the hash and then look character by character.  Instead
         // we'll extract 4 bits as the upper or lower nibble and compare to 8.  This is the
-        // same extracting that hexEncode performs, ultimately.
+        // same extracting that encodeHex performs, ultimately.
         int value = 0x0f & (hash[i / 2] >> ((0 == i % 2) ? 4 : 0));
         checksumAddr[i] = (value < 8
                            ? (char) tolower(checksumAddr[i])
@@ -148,13 +148,13 @@ ethAddressFillEncodedString (BREthereumAddress address,
 }
 
 extern BREthereumHash
-ethAddressGetHash (BREthereumAddress address) {
+addressGetHash (BREthereumAddress address) {
     BRRlpData data = { 20, address.bytes };
-    return ethHashCreateFromData(data);
+    return hashCreateFromData(data);
 }
 
 extern BREthereumAddress
-ethAddressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddress address = EMPTY_ADDRESS_INIT;
 
     BRRlpData data = rlpDecodeBytes(coder, item);
@@ -168,13 +168,13 @@ ethAddressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 }
 
 extern BRRlpItem
-ethAddressRlpEncode(BREthereumAddress address,
+addressRlpEncode(BREthereumAddress address,
                  BRRlpCoder coder) {
     return rlpEncodeBytes(coder, address.bytes, 20);
 }
 
 extern BREthereumBoolean
-ethAddressEqual (BREthereumAddress address1,
+addressEqual (BREthereumAddress address1,
               BREthereumAddress address2) {
     return (0 == memcmp(address1.bytes, address2.bytes, 20)
             ? ETHEREUM_BOOLEAN_TRUE

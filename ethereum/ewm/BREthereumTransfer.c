@@ -194,7 +194,7 @@ transferCreateDetailed (BREthereumAddress sourceAddress,
     transfer->targetAddress = targetAddress;
     transfer->amount = amount;
     transfer->feeBasis = feeBasis;
-    transfer->gasEstimate = ethGasCreate(0);
+    transfer->gasEstimate = gasCreate(0);
     transfer->originatingTransaction = originatingTransaction;
     transfer->status = TRANSFER_STATUS_CREATED;
 
@@ -251,7 +251,7 @@ transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction t
     // Use `transaction` as the `originatingTransaction`; takes ownership
     BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
                                                           transactionGetTargetAddress(transaction),
-                                                          ethAmountCreateEther (transactionGetAmount(transaction)),
+                                                          amountCreateEther (transactionGetAmount(transaction)),
                                                           feeBasis,
                                                           transaction);
 
@@ -278,7 +278,7 @@ transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction)
     // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
                                                           transactionGetTargetAddress(transaction),
-                                                          ethAmountCreateEther (transactionGetAmount(transaction)),
+                                                          amountCreateEther (transactionGetAmount(transaction)),
                                                           feeBasis,
                                                           NULL);
     // Basis - the transfer now owns the transaction.
@@ -310,11 +310,11 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
     BREthereumAddress targetAddress = logTopicAsAddress(logGetTopic(log, 2));
 
     // Only at this point do we know that log->data is a number.
-    BRRlpItem  item  = rlpDataGetItem (coder, logGetDataShared(log));
+    BRRlpItem  item  = rlpGetItem (coder, logGetDataShared(log));
     UInt256 value = rlpDecodeUInt256(coder, item, 1);
-    rlpItemRelease (coder, item);
+    rlpReleaseItem (coder, item);
 
-    BREthereumAmount  amount = ethAmountCreateToken (ethTokenQuantityCreate(token, value));
+    BREthereumAmount  amount = amountCreateToken (createTokenQuantity(token, value));
 
     // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (sourceAddress,
@@ -358,8 +358,8 @@ transferGetAmount (BREthereumTransfer transfer) {
 
 extern BREthereumToken
 transferGetToken (BREthereumTransfer transfer) {
-    return (AMOUNT_TOKEN == ethAmountGetType(transfer->amount)
-            ? ethAmountGetToken(transfer->amount)
+    return (AMOUNT_TOKEN == amountGetType(transfer->amount)
+            ? amountGetToken(transfer->amount)
             : NULL);
 }
 
@@ -421,7 +421,7 @@ transferSign (BREthereumTransfer transfer,
     
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transfer->originatingTransaction))
         transactionSetNonce (transfer->originatingTransaction,
-                             ethAccountGetThenIncrementAddressNonce(account, address));
+                             accountGetThenIncrementAddressNonce(account, address));
     
     // RLP Encode the UNSIGNED transfer
     BRRlpCoder coder = rlpCoderCreate();
@@ -429,17 +429,17 @@ transferSign (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpItemGetDataSharedDontRelease(coder, item);
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
     
     // Sign the RLP Encoded bytes.
-    BREthereumSignature signature = ethAccountSignBytes (account,
+    BREthereumSignature signature = accountSignBytes (account,
                                                       address,
                                                       SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                       data.bytes,
                                                       data.bytesCount,
                                                       paperKey);
     
-    rlpItemRelease(coder, item);
+    rlpReleaseItem(coder, item);
 
     // Attach the signature
     transactionSign (transfer->originatingTransaction, signature);
@@ -449,9 +449,9 @@ transferSign (BREthereumTransfer transfer,
                                  RLP_TYPE_TRANSACTION_SIGNED,
                                  coder);
     transactionSetHash (transfer->originatingTransaction,
-                        ethHashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
+                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
 
-    rlpItemRelease(coder, item);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -464,7 +464,7 @@ transferSignWithKey (BREthereumTransfer transfer,
     
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transfer->originatingTransaction))
         transactionSetNonce (transfer->originatingTransaction,
-                             ethAccountGetThenIncrementAddressNonce(account, address));
+                             accountGetThenIncrementAddressNonce(account, address));
     
     // RLP Encode the UNSIGNED transfer
     BRRlpCoder coder = rlpCoderCreate();
@@ -472,17 +472,17 @@ transferSignWithKey (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpItemGetDataSharedDontRelease (coder, item);
+    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
     
     // Sign the RLP Encoded bytes.
-    BREthereumSignature signature = ethAccountSignBytesWithPrivateKey (account,
+    BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
                                                                     address,
                                                                     SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                                     data.bytes,
                                                                     data.bytesCount,
                                                                     privateKey);
     
-    rlpItemRelease(coder, item);
+    rlpReleaseItem(coder, item);
 
     // Attach the signature
     transactionSign(transfer->originatingTransaction, signature);
@@ -493,9 +493,9 @@ transferSignWithKey (BREthereumTransfer transfer,
                                  RLP_TYPE_TRANSACTION_SIGNED,
                                  coder);
     transactionSetHash (transfer->originatingTransaction,
-                        ethHashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
+                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
 
-    rlpItemRelease(coder, item);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -544,7 +544,7 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
 
     // If we have a basis, then the transfer is confirmed; use the actual fee.
     if (TRANSFER_BASIS_LOG == transfer->basis.type && NULL != transfer->basis.u.log)
-        return ethEtherCreateZero();
+        return etherCreateZero();
 
     else if (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && NULL != transfer->basis.u.transaction)
         return transactionGetFee (transfer->basis.u.transaction, overflow);
@@ -552,7 +552,7 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
     else if (NULL != transfer->originatingTransaction)
         return transactionGetFee (transfer->originatingTransaction, overflow);
 
-    else return ethEtherCreateZero();
+    else return etherCreateZero();
 }
 
 /// MARK: - Basis
@@ -689,17 +689,17 @@ transferExtractStatusErrorType (BREthereumTransfer transfer,
 
 static char *
 transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
-    switch (ethAmountGetType(transfer->amount)) {
+    switch (amountGetType(transfer->amount)) {
         case AMOUNT_ETHER:
             return strdup ("");
         case AMOUNT_TOKEN: {
-            UInt256 value = ethAmountGetTokenQuantity(transfer->amount).valueAsInteger;
+            UInt256 value = amountGetTokenQuantity(transfer->amount).valueAsInteger;
             
             char address[ADDRESS_ENCODED_CHARS];
-            ethAddressFillEncodedString(transfer->targetAddress, 0, address);
+            addressFillEncodedString(transfer->targetAddress, 0, address);
             
             // Data is a HEX ENCODED string
-            return (char *) ethContractEncode (ethContractERC20, ethFunctionERC20Transfer,
+            return (char *) contractEncode (contractERC20, functionERC20Transfer,
                                             // Address
                                             (uint8_t *) &address[2], strlen(address) - 2,
                                             // Amount
@@ -711,21 +711,21 @@ transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
 
 static BREthereumAddress
 transferProvideOriginatingTransactionTargetAddress (BREthereumTransfer transfer) {
-    switch (ethAmountGetType(transfer->amount)) {
+    switch (amountGetType(transfer->amount)) {
         case AMOUNT_ETHER:
             return transfer->targetAddress;
         case AMOUNT_TOKEN:
-            return ethTokenGetAddressRaw(ethAmountGetToken(transfer->amount));
+            return tokenGetAddressRaw(amountGetToken(transfer->amount));
     }
 }
 
 static BREthereumEther
 transferProvideOriginatingTransactionAmount (BREthereumTransfer transfer) {
-    switch (ethAmountGetType(transfer->amount)) {
+    switch (amountGetType(transfer->amount)) {
         case AMOUNT_ETHER:
             return transfer->amount.u.ether;
         case AMOUNT_TOKEN:
-            return ethEtherCreateZero();
+            return etherCreateZero();
     }
 }
 
@@ -740,8 +740,8 @@ transferProvideOriginatingTransaction (BREthereumTransfer transfer) {
     transactionCreate (transfer->sourceAddress,
                        transferProvideOriginatingTransactionTargetAddress (transfer),
                        transferProvideOriginatingTransactionAmount (transfer),
-                       ethFeeBasisGetGasPrice(transfer->feeBasis),
-                       ethFeeBasisGetGasLimit(transfer->feeBasis),
+                       feeBasisGetGasPrice(transfer->feeBasis),
+                       feeBasisGetGasLimit(transfer->feeBasis),
                        data,
                        TRANSACTION_NONCE_IS_NOT_ASSIGNED);
     free (data);
@@ -752,7 +752,7 @@ private_extern BREthereumEther
 transferGetEffectiveAmountInEther(BREthereumTransfer transfer) {
     switch (transfer->basis.type) {
         case TRANSFER_BASIS_LOG:
-            return ethEtherCreateZero();
+            return etherCreateZero();
         case TRANSFER_BASIS_TRANSACTION:
             return transactionGetAmount(NULL != transfer->basis.u.transaction
                                         ? transfer->basis.u.transaction

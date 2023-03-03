@@ -40,14 +40,14 @@ static UInt256 etherUnitScaleFactor [NUMBER_OF_ETHER_UNITS] = {   /* LITTLE ENDI
 };
 
 extern BREthereumEther
-ethEtherCreate(const UInt256 value) {
+etherCreate(const UInt256 value) {
     BREthereumEther ether;
     ether.valueInWEI = value;
     return ether;
 }
 
 extern BREthereumEther
-ethEtherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow) {
+etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow) {
     assert (NULL != overflow);
     
     BREthereumEther ether;
@@ -57,7 +57,7 @@ ethEtherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow)
             *overflow = 0;
             break;
         default: {
-            ether.valueInWEI = uint256Mul_Overflow(value, etherUnitScaleFactor[unit], overflow);
+            ether.valueInWEI = mulUInt256_Overflow(value, etherUnitScaleFactor[unit], overflow);
             break;
         }
     }
@@ -65,30 +65,30 @@ ethEtherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow)
 }
 
 extern BREthereumEther
-ethEtherCreateNumber (uint64_t number, BREthereumEtherUnit unit) {
+etherCreateNumber (uint64_t number, BREthereumEtherUnit unit) {
     int overflow;
     UInt256 value = { .u64 = { number, 0, 0, 0 } };
-    BREthereumEther ether = ethEtherCreateUnit(value, unit, &overflow);
+    BREthereumEther ether = etherCreateUnit(value, unit, &overflow);
     assert (0 == overflow);
     return ether;
 }
 
 extern BREthereumEther
-ethEtherCreateZero(void) {
-    return ethEtherCreate(UINT256_ZERO);
+etherCreateZero(void) {
+    return etherCreate(UINT256_ZERO);
 }
 
 extern BREthereumEther
-ethEtherCreateString(const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
+etherCreateString(const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
     int decimals = 3 * unit;
     
-    UInt256 value = uint256CreateParseDecimal(number, decimals, status);
-    return ethEtherCreate(value);
+    UInt256 value = createUInt256ParseDecimal(number, decimals, status);
+    return etherCreate(value);
 }
 
 
 extern UInt256 // Can't be done: 1 WEI in ETHER... not representable as UInt256
-ethEtherGetValue(const BREthereumEther ether,
+etherGetValue(const BREthereumEther ether,
               BREthereumEtherUnit unit) {
     switch (unit) {
         case WEI:
@@ -100,31 +100,31 @@ ethEtherGetValue(const BREthereumEther ether,
 }
 
 extern char * // Perhaps can be done. 1 WEI -> 1e-18 Ether
-ethEtherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit) {
-    return uint256CoerceStringDecimal(ether.valueInWEI, 3 * unit);
+etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit) {
+    return coerceStringDecimal(ether.valueInWEI, 3 * unit);
 }
 
 extern BRRlpItem
-ethEtherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
+etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
     return rlpEncodeUInt256(coder, ether.valueInWEI, 1);
 }
 
 extern BREthereumEther
-ethEtherRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    return ethEtherCreate(rlpDecodeUInt256(coder, item, 1));
+etherRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    return etherCreate(rlpDecodeUInt256(coder, item, 1));
 }
 
 extern BREthereumEther
-ethEtherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow) {
+etherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow) {
     BREthereumEther result;
-    result.valueInWEI = uint256Add_Overflow(e1.valueInWEI, e2.valueInWEI, overflow);
+    result.valueInWEI = addUInt256_Overflow(e1.valueInWEI, e2.valueInWEI, overflow);
     return result;
 }
 
 extern BREthereumEther
-ethEtherSub (BREthereumEther e1, BREthereumEther e2, int *negative) {
+etherSub (BREthereumEther e1, BREthereumEther e2, int *negative) {
     BREthereumEther result;
-    result.valueInWEI = uint256Sub_Negative(e1.valueInWEI, e2.valueInWEI, negative);
+    result.valueInWEI = subUInt256_Negative(e1.valueInWEI, e2.valueInWEI, negative);
     return result;
     
 }
@@ -133,38 +133,38 @@ ethEtherSub (BREthereumEther e1, BREthereumEther e2, int *negative) {
 // Comparisons
 //
 extern BREthereumBoolean
-ethEtherIsEQ (BREthereumEther e1, BREthereumEther e2) {
-    return uint256EQL (e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+etherIsEQ (BREthereumEther e1, BREthereumEther e2) {
+    return eqUInt256 (e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
-ethEtherIsGT (BREthereumEther e1, BREthereumEther e2) {
-    return uint256GT(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+etherIsGT (BREthereumEther e1, BREthereumEther e2) {
+    return gtUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
-ethEtherIsGE (BREthereumEther e1, BREthereumEther e2) {
-    return uint256GE(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+etherIsGE (BREthereumEther e1, BREthereumEther e2) {
+    return geUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
-ethEtherIsLT (BREthereumEther e1, BREthereumEther e2) {
-    return uint256LT(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+etherIsLT (BREthereumEther e1, BREthereumEther e2) {
+    return ltUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
-ethEtherIsLE (BREthereumEther e1, BREthereumEther e2) {
-    return uint256LE(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+etherIsLE (BREthereumEther e1, BREthereumEther e2) {
+    return leUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
-ethEtherIsZero (BREthereumEther e) {
+etherIsZero (BREthereumEther e) {
     return UInt256IsZero (e.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumComparison
-ethEtherCompare (BREthereumEther e1, BREthereumEther e2) {
-    switch (uint256Compare(e1.valueInWEI, e2.valueInWEI))
+etherCompare (BREthereumEther e1, BREthereumEther e2) {
+    switch (compareUInt256(e1.valueInWEI, e2.valueInWEI))
     {
         case -1: return ETHEREUM_COMPARISON_LT;
         case  0: return ETHEREUM_COMPARISON_EQ;

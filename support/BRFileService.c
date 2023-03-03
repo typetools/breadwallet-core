@@ -81,7 +81,7 @@ static int needSQLiteCompileOptions = 1;
 #define encodeChar(u)           ((char)    _hexc(u))
 
 static void
-hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
+decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
     //
     assert (0 == sourceLen % 2);
     assert (2 * targetLen == sourceLen);
@@ -92,7 +92,7 @@ hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
 }
 
 static void
-hexEncode (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
+encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
 
     for (int i = 0; i < sourceLen; i++) {
@@ -577,7 +577,7 @@ _fileServiceSave (BRFileService fs,
     // Nex encode bytes
     size_t dataCount = 2 * bytesCount + 1;
     char *data = malloc (dataCount);
-    hexEncode (data, dataCount, bytes, bytesCount);
+    encodeHex (data, dataCount, bytes, bytesCount);
     free (bytes);
 
     // Fill out the SQL statement
@@ -663,10 +663,6 @@ fileServiceLoad (BRFileService fs,
     uint8_t *dataBytes = dataBytesBuffer;
     size_t   dataBytesCount = 8196;
 
-    // Zero out the dataByte memory to avoid subsequent Clang Static Analysis errors releted
-    // to dereferencing uninitialized memory.  We accept this minimal, extraneous function call.
-    memset(dataBytes, 0, dataBytesCount);
-
     while (SQLITE_ROW == sqlite3_step(fs->sdbSelectAllStmt)) {
         const char *hash = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 0);
         const char *data = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 1);
@@ -687,7 +683,7 @@ fileServiceLoad (BRFileService fs,
         }
 
         // Actually decode `data` into `dataBytes`
-        hexDecode (dataBytes, dataCount/2, data, dataCount);
+        decodeHex (dataBytes, dataCount/2, data, dataCount);
 
         size_t offset = 0;
         BRFileServiceVersion version;
@@ -810,18 +806,18 @@ fileServiceClearForType (BRFileService fs,
 
     if (needLock) pthread_mutex_lock (&fs->lock);
     if (fs->sdbClosed)
-        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+        return fileServiceFailedImpl (fs, needLock, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
     sqlite3_clear_bindings (fs->sdbDeleteAllTypeStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
-        return fileServiceFailedSDB (fs, 1, status);
+        return fileServiceFailedSDB (fs, needLock, status);
 
     status = sqlite3_step (fs->sdbDeleteAllTypeStmt);
     if (SQLITE_DONE != status)
-        return fileServiceFailedSDB (fs, 1, status);
+        return fileServiceFailedSDB (fs, needLock, status);
 
     // Ensure the 'implicit DB transaction' is committed.
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);

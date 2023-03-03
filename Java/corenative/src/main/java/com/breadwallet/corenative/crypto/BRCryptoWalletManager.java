@@ -38,7 +38,7 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public static Optional<BRCryptoWalletManager> create(BRCryptoCWMListener listener,
-                                                         BRCryptoClient client,
+                                                         BRCryptoCWMClient client,
                                                          BRCryptoAccount account,
                                                          BRCryptoNetwork network,
                                                          BRCryptoSyncMode mode,
@@ -323,33 +323,33 @@ public class BRCryptoWalletManager extends PointerType {
                 fee.getPointer());
     }
 
-    public void announceGetBlockNumberSuccess(BRCryptoClientCallbackState callbackState, UnsignedLong blockNumber) {
+    public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockNumber) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetBlockNumberSuccessAsInteger(thisPtr, callbackState.getPointer(), blockNumber.longValue());
     }
 
-    public void announceGetBlockNumberSuccess(BRCryptoClientCallbackState callbackState, String blockNumber) {
+    public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, String blockNumber) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetBlockNumberSuccessAsString(thisPtr, callbackState.getPointer(), blockNumber);
     }
 
-    public void announceGetBlockNumberFailure(BRCryptoClientCallbackState callbackState) {
+    public void announceGetBlockNumberFailure(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetBlockNumberFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetTransactionsItem(BRCryptoClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction, UnsignedLong timestamp,
-                                            UnsignedLong blockHeight) {
+    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction, UnsignedLong timestamp,
+                                               UnsignedLong blockHeight) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cwmAnnounceGetTransactionsItem(thisPtr, callbackState.getPointer(), status.toCore(), transaction, new SizeT(transaction.length),
+        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemBTC(thisPtr, callbackState.getPointer(), status.toCore(), transaction, new SizeT(transaction.length),
                 timestamp.longValue(), blockHeight.longValue());
     }
 
-    public void announceGetTransactionsItemEth(BRCryptoClientCallbackState callbackState, String hash, String sourceAddr,
+    public void announceGetTransactionsItemEth(BRCryptoCWMClientCallbackState callbackState, String hash, String sourceAddr,
                                                String targetAddr, String contractAddr, String amount, String gasLimit,
                                                String gasPrice, String data, String nonce, String gasUsed,
                                                String blockNumber, String blockHash, String blockConfirmations,
@@ -361,15 +361,22 @@ public class BRCryptoWalletManager extends PointerType {
                 blockTransacionIndex, blockTimestamp, isError);
     }
 
-    public void announceGetTransactionsComplete(BRCryptoClientCallbackState callbackState, boolean success) {
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemGEN(thisPtr, callbackState.getPointer(), status.toCore(), transaction, new SizeT(transaction.length),
+                timestamp.longValue(), blockHeight.longValue());
+    }
+
+    public void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetTransactionsComplete(thisPtr, callbackState.getPointer(), success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
-    public void announceGetTransfersItemGen(BRCryptoClientCallbackState callbackState,
-                                            BRCryptoTransferStateType status,
+    public void announceGetTransfersItemGen(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status,
                                             String hash,
                                             String uids,
                                             String from,
@@ -404,87 +411,87 @@ public class BRCryptoWalletManager extends PointerType {
                 metaVals);
     }
 
-    public void announceGetTransfersComplete(BRCryptoClientCallbackState callbackState, boolean success) {
+    public void announceGetTransfersComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetTransfersComplete(thisPtr, callbackState.getPointer(), success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
-    public void announceSubmitTransferSuccess(BRCryptoClientCallbackState callbackState) {
+    public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceSubmitTransferSuccess(thisPtr, callbackState.getPointer());
     }
 
-    public void announceSubmitTransferSuccess(BRCryptoClientCallbackState callbackState, String hash) {
+    public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState, String hash) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceSubmitTransferSuccessForHash(thisPtr, callbackState.getPointer(), hash);
     }
 
-    public void announceSubmitTransferFailure(BRCryptoClientCallbackState callbackState) {
+    public void announceSubmitTransferFailure(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceSubmitTransferFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetBalanceSuccess(BRCryptoClientCallbackState callbackState, String balance) {
+    public void announceGetBalanceSuccess(BRCryptoCWMClientCallbackState callbackState, String balance) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetBalanceSuccess(thisPtr, callbackState.getPointer(), balance);
     }
 
-    public void announceGetBalanceFailure(BRCryptoClientCallbackState callbackState) {
+    public void announceGetBalanceFailure(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetBalanceFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetGasPriceSuccess(BRCryptoClientCallbackState callbackState, String gasPrice) {
+    public void announceGetGasPriceSuccess(BRCryptoCWMClientCallbackState callbackState, String gasPrice) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetGasPriceSuccess(thisPtr, callbackState.getPointer(), gasPrice);
     }
 
-    public void announceGetGasPriceFailure(BRCryptoClientCallbackState callbackState) {
+    public void announceGetGasPriceFailure(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetGasPriceFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetGasEstimateSuccess(BRCryptoClientCallbackState callbackState, String gasEstimate, String gasPrice) {
+    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetGasEstimateSuccess(thisPtr, callbackState.getPointer(), gasEstimate, gasPrice);
     }
 
-    public void announceGetGasEstimateFailure(BRCryptoClientCallbackState callbackState, BRCryptoStatus status) {
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, BRCryptoStatus status) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetGasEstimateFailure(thisPtr, callbackState.getPointer(), status.toCore());
     }
 
-    public void announceGetLogsItem(BRCryptoClientCallbackState callbackState, String hash, String contract,
+    public void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract,
                                     List<String> topics, String data, String gasPrice, String gasUsed,
                                     String logIndex, String blockNumber, String blockTransactionIndex,
                                     String blockTimestamp) {
         Pointer thisPtr = this.getPointer();
 
         StringArray topicsArray = new StringArray(topics.toArray(new String[0]), "UTF-8");
-        CryptoLibraryDirect.cwmAnnounceGetLogsItemETH(thisPtr, callbackState.getPointer(), hash, contract, topics.size(),
+        CryptoLibraryDirect.cwmAnnounceGetLogsItem(thisPtr, callbackState.getPointer(), hash, contract, topics.size(),
                 topicsArray, data, gasPrice, gasUsed, logIndex,
                 blockNumber, blockTransactionIndex, blockTimestamp);
     }
 
-    public void announceGetLogsComplete(BRCryptoClientCallbackState callbackState, boolean success) {
+    public void announceGetLogsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetLogsComplete(thisPtr, callbackState.getPointer(), success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
-    public void announceGetBlocksSuccess(BRCryptoClientCallbackState callbackState, List<UnsignedLong> blocks) {
+    public void announceGetBlocksSuccess(BRCryptoCWMClientCallbackState callbackState, List<UnsignedLong> blocks) {
         Pointer thisPtr = this.getPointer();
 
         int count = 0;
@@ -493,13 +500,13 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cwmAnnounceGetBlocksSuccess(thisPtr, callbackState.getPointer(), blockArray.length, blockArray);
     }
 
-    public void announceGetBlocksFailure(BRCryptoClientCallbackState callbackState) {
+    public void announceGetBlocksFailure(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetBlocksFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetTokensItem(BRCryptoClientCallbackState callbackState, String address, String symbol, String name,
+    public void announceGetTokensItem(BRCryptoCWMClientCallbackState callbackState, String address, String symbol, String name,
                                       String description, UnsignedInteger decimals, String gasLimit, String gasPrice) {
         Pointer thisPtr = this.getPointer();
 
@@ -507,20 +514,20 @@ public class BRCryptoWalletManager extends PointerType {
                 decimals.intValue(), gasLimit, gasPrice);
     }
 
-    public void announceGetTokensComplete(BRCryptoClientCallbackState callbackState, boolean success) {
+    public void announceGetTokensComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetTokensComplete(thisPtr, callbackState.getPointer(), success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
-    public void announceGetNonceSuccess(BRCryptoClientCallbackState callbackState, String address, String nonce) {
+    public void announceGetNonceSuccess(BRCryptoCWMClientCallbackState callbackState, String address, String nonce) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetNonceSuccess(thisPtr, callbackState.getPointer(), address, nonce);
     }
 
-    public void announceGetNonceFailure(BRCryptoClientCallbackState callbackState) {
+    public void announceGetNonceFailure(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cwmAnnounceGetNonceFailure(thisPtr, callbackState.getPointer());

@@ -8,13 +8,13 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "ethereum/util/BRUtil.h" // hexEncodeCreate()
+#include "ethereum/util/BRUtil.h" // encodeHexCreate()
 #include "BREthereumData.h"
 
 /// MARK: - Data
 
 extern BREthereumData
-ethDataCreateFromBytes (size_t count, uint8_t *bytes, int takeBytes) {
+dataCreateFromBytes (size_t count, uint8_t *bytes, int takeBytes) {
     uint8_t *data = bytes;  // take the bytes...
 
     // ... oops, we can't, so copy.
@@ -27,35 +27,35 @@ ethDataCreateFromBytes (size_t count, uint8_t *bytes, int takeBytes) {
 }
 
 extern BREthereumData
-ethDataCreateFromRlpData (BRRlpData rlp,
-                          int takeBytes) {
-    return ethDataCreateFromBytes (rlp.bytesCount, rlp.bytes, takeBytes);
+dataCreateFromRlpData (BRRlpData rlp,
+                       int takeBytes) {
+    return dataCreateFromBytes (rlp.bytesCount, rlp.bytes, takeBytes);
 }
 
 extern BREthereumData
-ethDataCreateFromString (const char *string) {
+dataCreateFromString (const char *string) {
     BREthereumData data;
-    data.bytes = hexDecodeCreate(&data.count, string, strlen (string));
+    data.bytes = decodeHexCreate(&data.count, string, strlen (string));
     return data;
 }
 
 extern BREthereumData
-ethDataCopy (BREthereumData data) {
-    return ethDataCreateFromBytes (data.count, data.bytes, 1);
+dataCopy (BREthereumData data) {
+    return dataCreateFromBytes (data.count, data.bytes, 1);
 }
 
 extern void
-ethDataRelease (BREthereumData data) {
+dataRelease (BREthereumData data) {
     if (NULL != data.bytes) free (data.bytes);
 }
 
 extern char *
-ethDataAsString (BREthereumData data) {
-    return hexEncodeCreate (NULL, data.bytes, data.count);
+dataAsString (BREthereumData data) {
+    return encodeHexCreate (NULL, data.bytes, data.count);
 }
 
 extern BRRlpData
-ethDataAsRlpData (BREthereumData data) {
+dataAsRlpData (BREthereumData data) {
     BRRlpData rlp = { data.count, malloc (data.count) };
     memcpy (rlp.bytes, data.bytes, data.count);
     return rlp;
@@ -69,8 +69,8 @@ struct BREthereumHashDataPairRecord {
 };
 
 extern BREthereumHashDataPair
-ethHashDataPairCreate (BREthereumHash hash,
-                       BREthereumData data) {
+hashDataPairCreate (BREthereumHash hash,
+                    BREthereumData data) {
     BREthereumHashDataPair pair = malloc (sizeof (struct BREthereumHashDataPairRecord));
 
     pair->hash = hash;
@@ -80,74 +80,74 @@ ethHashDataPairCreate (BREthereumHash hash,
 }
 
 extern BREthereumHashDataPair
-ethHashDataPairCreateFromString (const char *hashString,
-                                 const char *dataString) {
-    return ethHashDataPairCreate (ethHashCreate (hashString),
-                                  ethDataCreateFromString (dataString));
+hashDataPairCreateFromString (const char *hashString,
+                              const char *dataString) {
+    return hashDataPairCreate (hashCreate (hashString),
+                               dataCreateFromString (dataString));
 }
 
 extern void
-ethHashDataPairRelease (BREthereumHashDataPair pair) {
-    ethDataRelease (pair->data);
+hashDataPairRelease (BREthereumHashDataPair pair) {
+    dataRelease (pair->data);
     free (pair);
 }
 
 extern BREthereumHash
-ethHashDataPairGetHash (BREthereumHashDataPair pair) {
+hashDataPairGetHash (BREthereumHashDataPair pair) {
     return pair->hash;
 }
 
 // The hex-encoded hash.  You own this.
 extern char *
-ethHashDataPairGetHashAsString (BREthereumHashDataPair pair) {
-    return ethHashAsString (pair->hash);
+hashDataPairGetHashAsString (BREthereumHashDataPair pair) {
+    return hashAsString (pair->hash);
 }
 
 // YOU DO NOT OWN THE RETURNED DATA
 extern BREthereumData
-ethHashDataPairGetData (BREthereumHashDataPair pair) {
+hashDataPairGetData (BREthereumHashDataPair pair) {
     return pair->data;
 }
 
 extern char *
-ethHashDataPairGetDataAsString (BREthereumHashDataPair pair) {
-    return ethDataAsString (pair->data);
+hashDataPairGetDataAsString (BREthereumHashDataPair pair) {
+    return dataAsString (pair->data);
 }
 
 extern void
-ethHashDataPairExtractStrings (BREthereumHashDataPair pair,
-                               char **hashAsString,
-                               char **dataAsString) {
-    if (NULL != hashAsString) *hashAsString = ethHashDataPairGetHashAsString (pair);
-    if (NULL != dataAsString) *dataAsString = ethHashDataPairGetDataAsString (pair);
+hashDataPairExtractStrings (BREthereumHashDataPair pair,
+                            char **hashAsString,
+                            char **dataAsString) {
+    if (NULL != hashAsString) *hashAsString = hashDataPairGetHashAsString (pair);
+    if (NULL != dataAsString) *dataAsString = hashDataPairGetDataAsString (pair);
 }
 
 extern size_t
-ethHashDataPairHashValue (const void *t)
+hashDataPairHashValue (const void *t)
 {
-    return ethHashSetValue(&((BREthereumHashDataPair) t)->hash);
+    return hashSetValue(&((BREthereumHashDataPair) t)->hash);
 }
 
 
 extern int
-ethHashDataPairHashEqual (const void *t1,
-                          const void *t2) {
-    return t1 == t2 || ethHashSetEqual (&((BREthereumHashDataPair) t1)->hash,
-                                        &((BREthereumHashDataPair) t2)->hash);
+hashDataPairHashEqual (const void *t1,
+                       const void *t2) {
+    return t1 == t2 || hashSetEqual (&((BREthereumHashDataPair) t1)->hash,
+                                     &((BREthereumHashDataPair) t2)->hash);
 }
 
 /// MARK: - Hash Data Pair Set
 extern BRSetOf (BREthereumHashDataPair)
-ethHashDataPairSetCreateEmpty(size_t count) {
-    return BRSetNew (ethHashDataPairHashValue,
-                     ethHashDataPairHashEqual,
+hashDataPairSetCreateEmpty(size_t count) {
+    return BRSetNew (hashDataPairHashValue,
+                     hashDataPairHashEqual,
                      count);
 }
 
 extern BRSetOf (BREthereumHashDataPair)
-ethHashDataPairSetCreate (BRArrayOf(BREthereumHashDataPair) pairs) {
+hashDataPairSetCreate (BRArrayOf(BREthereumHashDataPair) pairs) {
     size_t count = array_count (pairs);
-    BRSetOf(BREthereumHashDataPair) set = ethHashDataPairSetCreateEmpty (count);
+    BRSetOf(BREthereumHashDataPair) set = hashDataPairSetCreateEmpty (count);
 
     for (size_t index = 0; index < count; index++)
         BRSetAdd (set, pairs[index]);
@@ -157,21 +157,21 @@ ethHashDataPairSetCreate (BRArrayOf(BREthereumHashDataPair) pairs) {
 }
 
 extern void
-ethHashDataPairSetRelease (BRSetOf (BREthereumHashDataPair) set) {
+hashDataPairSetRelease (BRSetOf (BREthereumHashDataPair) set) {
     size_t itemsCount = BRSetCount (set);
     void  *itemsAll [itemsCount];
 
     BRSetAll (set, itemsAll,  itemsCount);
     for (size_t index = 0; index < itemsCount; index++)
-        ethHashDataPairRelease ((BREthereumHashDataPair) itemsAll[index]);
+        hashDataPairRelease ((BREthereumHashDataPair) itemsAll[index]);
     
     BRSetClear (set);
     BRSetFree  (set);
 }
 
 extern void
-ethHashDataPairAdd (BRSetOf(BREthereumHashDataPair) set,
-                    const char *hash,
-                    const char *data) {
-    BRSetAdd (set, ethHashDataPairCreateFromString(hash, data));
+hashDataPairAdd (BRSetOf(BREthereumHashDataPair) set,
+                 const char *hash,
+                 const char *data) {
+    BRSetAdd (set, hashDataPairCreateFromString(hash, data));
 }

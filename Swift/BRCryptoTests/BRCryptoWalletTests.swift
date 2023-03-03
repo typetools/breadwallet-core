@@ -307,14 +307,9 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
     }
 
     func testWalletXRP() {
-        isMainnet = false
+        isMainnet = true
         currencyCodesToMode = ["xrp":WalletManagerMode.api_only]
-        prepareAccount (AccountSpecification (dict: [
-            "identifier": "ginger",
-            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-            "timestamp":  "2018-01-01",
-            "network":    (isMainnet ? "mainnet" : "testnet")
-            ]))
+        prepareAccount (identifier: "loan(C)")
 
         prepareSystem()
 
@@ -393,7 +388,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         // DestinationTag required but not provided
         attributes = Set(wallet.transferAttributesFor(target: coinbase)
             .map {
-                var attribute: TransferAttribute = $0
+                let attribute: TransferAttribute = $0
                 switch attribute.key {
                 case "DestinationTag":
                     attribute.value = nil
@@ -416,7 +411,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
             .compactMap {
                 switch $0.key {
                 case "DestinationTag":
-                    var attribute = $0
+                    let attribute = $0
                     attribute.value = "1234567"
                     return attribute
                 default:

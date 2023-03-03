@@ -34,7 +34,7 @@ extern "C" {
         CRYPTO_NETWORK_TYPE_BCH,
         CRYPTO_NETWORK_TYPE_ETH,
         CRYPTO_NETWORK_TYPE_XRP,
-        CRYPTO_NETWORK_TYPE_HBAR,
+        // CRYPTO_NETWORK_TYPE_HBAR,
         // CRYPTO_NETWORK_TYPE_XLM,
     } BRCryptoNetworkCanonicalType;
 
@@ -314,10 +314,6 @@ extern "C" {
 
     extern BRCryptoBoolean
     cryptoNetworkRequiresMigration (BRCryptoNetwork network);
-
-    //  TODO: Remove this once ETH uses the BlockSet API
-    extern const char *
-    cryptoNetworkGetETHNetworkName (BRCryptoNetwork network);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 

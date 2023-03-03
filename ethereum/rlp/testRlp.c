@@ -59,7 +59,7 @@ int equalBytes (uint8_t *a, size_t aLen, uint8_t *b, size_t bLen) {
 }
 
 void rlpCheck (BRRlpCoder coder, BRRlpItem item, uint8_t *result, size_t resultSize) {
-    BRRlpData data = rlpItemGetData(coder, item);
+    BRRlpData data = rlpGetData(coder, item);
     assert (equalBytes(data.bytes, data.bytesCount, result, resultSize));
     printf (" => "); showHex (data.bytes, data.bytesCount);
 
@@ -70,14 +70,14 @@ void rlpCheckString (BRRlpCoder coder, const char *string, uint8_t *result, size
     printf ("  \"%s\"", string);
     BRRlpItem item = rlpEncodeString(coder, (char*) string);
     rlpCheck(coder, item, result, resultSize);
-    rlpItemRelease(coder, item);
+    rlpReleaseItem(coder, item);
 }
 
 void rlpCheckInt (BRRlpCoder coder, uint64_t value, uint8_t *result, size_t resultSize) {
     printf ("  %" PRIu64, value);
     BRRlpItem item = rlpEncodeUInt64(coder, value, 0);
     rlpCheck(coder, item, result, resultSize);
-    rlpItemRelease(coder, item);
+    rlpReleaseItem(coder, item);
 }
 
 void runRlpEncodeTest () {
@@ -109,16 +109,16 @@ void runRlpEncodeTest () {
     uint8_t resCatDog[] = RLP_L1_RES;
     printf ("  \"%s\"", "[\"cat\" \"dog\"]");
     rlpCheck(coder, listCatDog, resCatDog, 9);
-    rlpItemRelease(coder, listCatDog);
+    rlpReleaseItem(coder, listCatDog);
 
     BRCoreParseStatus status = CORE_PARSE_OK;
     char *value = "5968770000000000000000";
-    UInt256 r = uint256CreateParse(value, 10, &status);
+    UInt256 r = createUInt256Parse(value, 10, &status);
     BRRlpItem item = rlpEncodeUInt256(coder, r, 0);
-    BRRlpData data = rlpItemGetData(coder, item);
-    rlpItemRelease(coder, item);
+    BRRlpData data = rlpGetData(coder, item);
+    rlpReleaseItem(coder, item);
     printf ("  %s\n    => ", value); showHex (data.bytes, data.bytesCount);
-    char *dataHex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
+    char *dataHex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
     printf ("    => %s\n", dataHex);
     assert (0 == strcasecmp (dataHex, "8a01439152d319e84d0000"));
     free (dataHex);
@@ -138,7 +138,7 @@ void runRlpDecodeTest () {
     l1d.bytes = l1b;
     l1d.bytesCount = 9;
 
-    BRRlpItem l1i = rlpDataGetItem(coder, l1d);
+    BRRlpItem l1i = rlpGetItem(coder, l1d);
     const BRRlpItem *l1is = rlpDecodeList (coder, l1i, &c);
     assert (2 == c);
 
@@ -146,7 +146,7 @@ void runRlpDecodeTest () {
     char *liDog = rlpDecodeString(coder, l1is[1]);
     assert (0 == strcmp (liCat, "cat"));
     assert (0 == strcmp (liDog, "dog"));
-    rlpItemRelease(coder, l1i);
+    rlpReleaseItem(coder, l1i);
     free (liCat);
     free (liDog);
 
@@ -155,10 +155,10 @@ void runRlpDecodeTest () {
     s3d.bytes = s3b;
     s3d.bytesCount = 58;
 
-    BRRlpItem s3i = rlpDataGetItem(coder, s3d);
+    BRRlpItem s3i = rlpGetItem(coder, s3d);
     char *s3Lorem = rlpDecodeString(coder, s3i);
     assert (0 == strcmp (s3Lorem, RLP_S3));
-    rlpItemRelease(coder, s3i);
+    rlpReleaseItem(coder, s3i);
    free (s3Lorem);
 
     //
@@ -167,10 +167,10 @@ void runRlpDecodeTest () {
     v3d.bytes = v3b;
     v3d.bytesCount = 3;
 
-    BRRlpItem v3i = rlpDataGetItem(coder, v3d);
+    BRRlpItem v3i = rlpGetItem(coder, v3d);
     uint64_t v3v = rlpDecodeUInt64(coder, v3i, 0);
     assert (1024 == v3v);
-    rlpItemRelease(coder, v3i);
+    rlpReleaseItem(coder, v3i);
 
     rlpCoderRelease(coder);
 }

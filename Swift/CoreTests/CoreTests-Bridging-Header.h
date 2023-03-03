@@ -59,9 +59,5 @@ extern BRCryptoBoolean runCryptoTestsWithAccountAndNetwork (BRCryptoAccount acco
 extern void
 runRippleTest (void /* ... */);
 
-// Hedera
-extern void
-runHederaTest (void /* ... */);
-
 #include "test.h"
 

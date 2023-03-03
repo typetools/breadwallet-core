@@ -66,70 +66,70 @@ struct BREthereumTokenRecord {
 };
 
 extern BREthereumAddress
-ethTokenGetAddressRaw (BREthereumToken token) {
+tokenGetAddressRaw (BREthereumToken token) {
     return token->raw;
 }
 
 extern const char *
-ethTokenGetAddress(BREthereumToken token) {
+tokenGetAddress(BREthereumToken token) {
     return token->address;
 }
 
 extern BREthereumBoolean
-ethTokenHasAddress (BREthereumToken token,
-                    const char *address) {
-    return ethAddressEqual (token->raw, ethAddressCreate (address));
+tokenHasAddress (BREthereumToken token,
+                 const char *address) {
+    return addressEqual (token->raw, addressCreate (address));
 }
 
 extern const char *
-ethTokenGetSymbol(BREthereumToken token) {
+tokenGetSymbol(BREthereumToken token) {
     return token->symbol;
 }
 
 extern const char *
-ethTokenGetName(BREthereumToken token) {
+tokenGetName(BREthereumToken token) {
     return token->name;
 }
 
 extern const char *
-ethTokenGetDescription(BREthereumToken token) {
+tokenGetDescription(BREthereumToken token) {
     return token->description;
 }
 
 extern int
-ethTokenGetDecimals(BREthereumToken token) {
+tokenGetDecimals(BREthereumToken token) {
     return token->decimals;
 }
 
 extern BREthereumGas
-ethTokenGetGasLimit(BREthereumToken token) {
+tokenGetGasLimit(BREthereumToken token) {
     return token->gasLimit;
 }
 
 
 extern BREthereumGasPrice
-ethTokenGetGasPrice(BREthereumToken token) {
+tokenGetGasPrice(BREthereumToken token) {
     return token->gasPrice;
 }
 
 extern BREthereumContract
-ethTokenGetContract(BREthereumToken token) {
-    return ethContractERC20;
+tokenGetContract(BREthereumToken token) {
+    return contractERC20;
 }
 
 extern BREthereumHash
-ethTokenGetHash (BREthereumToken token) {
-    return ethAddressGetHash(token->raw);
+tokenGetHash (BREthereumToken token) {
+    return addressGetHash(token->raw);
 }
 
 extern BREthereumToken
-ethTokenCreate (const char *address,
-                const char *symbol,
-                const char *name,
-                const char *description,
-                int decimals,
-                BREthereumGas defaultGasLimit,
-                BREthereumGasPrice defaultGasPrice) {
+tokenCreate (const char *address,
+             const char *symbol,
+             const char *name,
+             const char *description,
+             int decimals,
+             BREthereumGas defaultGasLimit,
+             BREthereumGasPrice defaultGasPrice) {
     BREthereumToken token = malloc (sizeof(struct BREthereumTokenRecord));
 
     token->address     = strdup (address);
@@ -139,13 +139,13 @@ ethTokenCreate (const char *address,
     token->decimals    = decimals;
     token->gasLimit    = defaultGasLimit;
     token->gasPrice    = defaultGasPrice;
-    token->raw         = ethAddressCreate (address);
+    token->raw         = addressCreate (address);
 
     return token;
 }
 
 extern void
-ethTokenRelease (BREthereumToken token) {
+tokenRelease (BREthereumToken token) {
     free (token->address);
     free (token->symbol);
     free (token->name);
@@ -154,13 +154,13 @@ ethTokenRelease (BREthereumToken token) {
 }
 
 extern void
-ethTokenUpdate (BREthereumToken token,
-                const char *symbol,
-                const char *name,
-                const char *description,
-                int decimals,
-                BREthereumGas defaultGasLimit,
-                BREthereumGasPrice defaultGasPrice) {
+tokenUpdate (BREthereumToken token,
+             const char *symbol,
+             const char *name,
+             const char *description,
+             int decimals,
+             BREthereumGas defaultGasLimit,
+             BREthereumGasPrice defaultGasPrice) {
 
     if (0 != strcasecmp (symbol     , token->symbol     )) { free (token->symbol     ); token->symbol      = strdup (symbol     ); }
     if (0 != strcasecmp (name       , token->name       )) { free (token->name       ); token->name        = strdup (name       ); }
@@ -173,50 +173,50 @@ ethTokenUpdate (BREthereumToken token,
 static inline size_t
 tokenHashValue (const void *t)
 {
-    return ethAddressHashValue(((BREthereumToken) t)->raw);
+    return addressHashValue(((BREthereumToken) t)->raw);
 }
 
 static inline int
 tokenHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || ethAddressHashEqual (((BREthereumToken) t1)->raw,
-                                            ((BREthereumToken) t2)->raw);
+    return t1 == t2 || addressHashEqual (((BREthereumToken) t1)->raw,
+                                         ((BREthereumToken) t2)->raw);
 }
 
 extern BRSetOf(BREthereumToken)
-ethTokenSetCreate (size_t capacity) {
+tokenSetCreate (size_t capacity) {
     return BRSetNew (tokenHashValue, tokenHashEqual, capacity);
 }
 
 extern BRRlpItem
-ethTokenRlpEncode (BREthereumToken token,
-                   BRRlpCoder coder) {
+tokenEncode (BREthereumToken token,
+             BRRlpCoder coder) {
     return rlpEncodeList (coder, 7,
-                          ethAddressRlpEncode (token->raw, coder),
+                          addressRlpEncode (token->raw, coder),
                           rlpEncodeString (coder, token->symbol),
                           rlpEncodeString (coder, token->name),
                           rlpEncodeString (coder, token->description),
                           rlpEncodeUInt64 (coder, token->decimals, 0),
-                          ethGasRlpEncode (token->gasLimit, coder),
-                          ethGasPriceRlpEncode (token->gasPrice, coder));
+                          gasRlpEncode (token->gasLimit, coder),
+                          gasPriceRlpEncode (token->gasPrice, coder));
 }
 
 extern BREthereumToken
-ethTokenRlpDecode (BRRlpItem item,
-                   BRRlpCoder coder) {
+tokenDecode (BRRlpItem item,
+             BRRlpCoder coder) {
     BREthereumToken token = malloc (sizeof(struct BREthereumTokenRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (7 == itemsCount);
 
-    token->raw     = ethAddressRlpDecode (items[0], coder);
-    token->address = ethAddressGetEncodedString(token->raw, 1);
+    token->raw     = addressRlpDecode (items[0], coder);
+    token->address = addressGetEncodedString(token->raw, 1);
     token->symbol  = rlpDecodeString (coder, items[1]);
     token->name    = rlpDecodeString (coder, items[2]);
     token->description = rlpDecodeString(coder, items[3]);
     token->decimals    = (unsigned int) rlpDecodeUInt64 (coder, items[4], 0);
-    token->gasLimit    = ethGasRlpDecode (items[5], coder);
-    token->gasPrice    = ethGasPriceRlpDecode (items[6], coder);
+    token->gasLimit    = gasRlpDecode (items[5], coder);
+    token->gasPrice    = gasPriceRlpDecode (items[6], coder);
 
     return token;
 }
@@ -226,8 +226,8 @@ ethTokenRlpDecode (BRRlpItem item,
 // Token Quantity
 //
 extern BREthereumTokenQuantity
-ethTokenQuantityCreate(BREthereumToken token,
-                       UInt256 valueAsInteger) {
+createTokenQuantity(BREthereumToken token,
+                    UInt256 valueAsInteger) {
     assert (NULL != token);
 
     BREthereumTokenQuantity quantity;
@@ -237,43 +237,43 @@ ethTokenQuantityCreate(BREthereumToken token,
 }
 
 extern BREthereumTokenQuantity
-ethTokenQuantityCreateString(BREthereumToken token,
-                             const char *number,
-                             BREthereumTokenQuantityUnit unit,
-                             BRCoreParseStatus *status) {
+createTokenQuantityString(BREthereumToken token,
+                          const char *number,
+                          BREthereumTokenQuantityUnit unit,
+                          BRCoreParseStatus *status) {
     UInt256 valueAsInteger;
 
-    if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != stringParseIsDecimal(number))
-        || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != stringParseIsInteger(number))) {
+    if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != parseIsDecimal(number))
+        || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != parseIsInteger(number))) {
         *status = CORE_PARSE_STRANGE_DIGITS;
         valueAsInteger = UINT256_ZERO;
     } else {
         valueAsInteger = (TOKEN_QUANTITY_TYPE_DECIMAL == unit
-                          ? uint256CreateParseDecimal(number, token->decimals, status)
-                          : uint256CreateParse(number, 10, status));
+                          ? createUInt256ParseDecimal(number, token->decimals, status)
+                          : createUInt256Parse(number, 10, status));
     }
 
-    return ethTokenQuantityCreate(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
+    return createTokenQuantity(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
 }
 
 extern const BREthereumToken
-ethTokenQuantityGetToken(BREthereumTokenQuantity quantity) {
+tokenQuantityGetToken(BREthereumTokenQuantity quantity) {
     return quantity.token;
 }
 
 extern char *
-ethTokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
-                               BREthereumTokenQuantityUnit unit) {
+tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
+                            BREthereumTokenQuantityUnit unit) {
     return TOKEN_QUANTITY_TYPE_INTEGER == unit
-    ? uint256CoerceString(quantity.valueAsInteger, 10)
-    : uint256CoerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
+           ? coerceString(quantity.valueAsInteger, 10)
+           : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
 }
 
 extern BREthereumComparison
-ethTokenQuantityCompare(BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch) {
+tokenQuantityCompare(BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch) {
     *typeMismatch = (q1.token != q2.token);
     if (*typeMismatch) return ETHEREUM_COMPARISON_GT;
-    switch (uint256Compare(q1.valueAsInteger, q2.valueAsInteger)) {
+    switch (compareUInt256(q1.valueAsInteger, q2.valueAsInteger)) {
         case -1:
             return ETHEREUM_COMPARISON_LT;
         case 0:

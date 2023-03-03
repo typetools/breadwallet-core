@@ -15,14 +15,14 @@
 // Gas
 //
 extern BREthereumGas
-ethGasCreate(uint64_t amountOfGas) {
+gasCreate(uint64_t amountOfGas) {
     BREthereumGas gas;
     gas.amountOfGas = amountOfGas;
     return gas;
 }
 
 extern BREthereumComparison
-ethGasCompare (BREthereumGas e1, BREthereumGas e2) {
+gasCompare (BREthereumGas e1, BREthereumGas e2) {
     return (e1.amountOfGas == e2.amountOfGas
             ? ETHEREUM_COMPARISON_EQ
             : (e1.amountOfGas > e2.amountOfGas
@@ -31,45 +31,45 @@ ethGasCompare (BREthereumGas e1, BREthereumGas e2) {
 }
 
 extern BRRlpItem
-ethGasRlpEncode (BREthereumGas gas, BRRlpCoder coder) {
+gasRlpEncode (BREthereumGas gas, BRRlpCoder coder) {
     return rlpEncodeUInt64(coder, gas.amountOfGas, 1);
 }
 
 extern BREthereumGas
-ethGasRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    return ethGasCreate(rlpDecodeUInt64(coder, item, 1));
+gasRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    return gasCreate(rlpDecodeUInt64(coder, item, 1));
 }
 
 //
 // Gas Price
 //
 extern BREthereumGasPrice
-ethGasPriceCreate(BREthereumEther ether) {
+gasPriceCreate(BREthereumEther ether) {
     BREthereumGasPrice gasPrice;
     gasPrice.etherPerGas = ether;
     return gasPrice;
 }
 
 extern BREthereumComparison
-ethGasPriceCompare (BREthereumGasPrice e1, BREthereumGasPrice e2) {
-    return ethEtherCompare(e1.etherPerGas, e2.etherPerGas);
+gasPriceCompare (BREthereumGasPrice e1, BREthereumGasPrice e2) {
+    return etherCompare(e1.etherPerGas, e2.etherPerGas);
 }
 
 extern BREthereumEther
-ethGasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow) {
+gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow) {
     assert (NULL != overflow);
     
-    return ethEtherCreate (uint256Mul_Overflow (uint256Create(gas.amountOfGas), // gas
+    return etherCreate (mulUInt256_Overflow (createUInt256(gas.amountOfGas), // gas
                                              price.etherPerGas.valueInWEI,   // WEI/gas
                                              overflow));
 }
 
 extern BRRlpItem
-ethGasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder) {
-    return ethEtherRlpEncode(price.etherPerGas, coder);
+gasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder) {
+    return etherRlpEncode(price.etherPerGas, coder);
 }
 
 extern BREthereumGasPrice
-ethGasPriceRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    return ethGasPriceCreate(ethEtherRlpDecode(item, coder));
+gasPriceRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    return gasPriceCreate(etherRlpDecode(item, coder));
 }

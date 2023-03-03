@@ -117,7 +117,7 @@ extern void
 messageP2PHelloShow (const BREthereumP2PMessageHello *hello) {
     size_t nodeIdLen = 2 * sizeof (hello->nodeId.u8) + 1;
     char nodeId[nodeIdLen];
-    hexEncode(nodeId, nodeIdLen, hello->nodeId.u8, sizeof (hello->nodeId.u8));
+    encodeHex(nodeId, nodeIdLen, hello->nodeId.u8, sizeof (hello->nodeId.u8));
 
     eth_log (LES_LOG_TOPIC, "Hello%s", "");
     eth_log (LES_LOG_TOPIC, "    Version     : %" PRIu64, hello->version);
@@ -335,10 +335,10 @@ messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
 extern void
 messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
     BREthereumHashString headHashString, genesisHashString;
-    ethHashFillString (message->headHash, headHashString);
-    ethHashFillString (message->genesisHash, genesisHashString);
+    hashFillString (message->headHash, headHashString);
+    hashFillString (message->genesisHash, genesisHashString);
 
-    char *headTotalDifficulty = uint256CoerceString (message->headTd, 10);
+    char *headTotalDifficulty = coerceString (message->headTd, 10);
 
     BREthereumP2PMessageStatusValue value;
 
@@ -413,7 +413,7 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
 
     items[index++] = rlpEncodeList2(coder.rlp,
                                     rlpEncodeString(coder.rlp, "headHash"),
-                                    ethHashRlpEncode(status->headHash, coder.rlp));
+                                    hashRlpEncode(status->headHash, coder.rlp));
 
     items[index++] = rlpEncodeList2(coder.rlp,
                                     rlpEncodeString(coder.rlp, "headNum"),
@@ -421,7 +421,7 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
 
     items[index++] = rlpEncodeList2 (coder.rlp,
                                      rlpEncodeString(coder.rlp, "genesisHash"),
-                                     ethHashRlpEncode(status->genesisHash, coder.rlp));
+                                     hashRlpEncode(status->genesisHash, coder.rlp));
 
     for (size_t pi = 0; NULL != status->pairs && pi < array_count(status->pairs); pi++) { // Pair-Index
         BREthereumP2PMessageStatusKeyValuePair *pair = &status->pairs[pi];
@@ -523,13 +523,13 @@ messageP2PStatusDecode (BRRlpItem item,
                 status.headTd = rlpDecodeUInt256(coder.rlp, keyPairs[1], 1);
             }
             else if (strcmp(key, "headHash") == 0) {
-                status.headHash = ethHashRlpDecode(keyPairs[1], coder.rlp);
+                status.headHash = hashRlpDecode(keyPairs[1], coder.rlp);
             }
             else if (strcmp(key, "headNum") == 0) {
                 status.headNum = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             }
             else if (strcmp(key, "genesisHash") == 0) {
-                status.genesisHash = ethHashRlpDecode(keyPairs[1], coder.rlp);
+                status.genesisHash = hashRlpDecode(keyPairs[1], coder.rlp);
             }
             // Optional
 

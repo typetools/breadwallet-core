@@ -20,7 +20,7 @@ extern "C" {
 /**
  * Convert a 'char *' string into a 'uint8_t *' byte array.  Two characters are consumed for each
  * byte.  The conversion is only valid for a source string this was derived by encoding a
- * byte array (with hexEncode).  Thus this method *WILL FATAL* if the sourceLen is not an even
+ * byte array (with encodeHex).  Thus this method *WILL FATAL* if the sourceLen is not an even
  * number.
  *
  * @param target
@@ -29,7 +29,7 @@ extern "C" {
  * @param sourceLen Must be even and 2*targetLen
  */
 extern void
-hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen);
+decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen);
 
 /**
  * Return the number `uint8_t *' elements needed to decode stringLen characters.  The provided
@@ -40,10 +40,10 @@ hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
  * @return
  */
 extern size_t
-hexDecodeLength (size_t stringLen);
+decodeHexLength (size_t stringLen);
 
 extern uint8_t *
-hexDecodeCreate (size_t *targetLen, const char *source, size_t sourceLen);
+decodeHexCreate (size_t *targetLen, const char *source, size_t sourceLen);
 
 /**
  * Convert a 'uint8_t *' byte array into a 'char *' string.  Two characters are produced for each
@@ -58,7 +58,7 @@ hexDecodeCreate (size_t *targetLen, const char *source, size_t sourceLen);
  * @param sourceLen
  */
 extern void
-hexEncode (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen);
+encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen);
 
 /**
  * Return the number of 'char *' elements needs to encode byteArrayLen bytes.  The return value
@@ -69,10 +69,10 @@ hexEncode (char *target, size_t targetLen, const uint8_t *source, size_t sourceL
  * @return
  */
 extern size_t
-hexEncodeLength(size_t byteArrayLen);
+encodeHexLength(size_t byteArrayLen);
 
 extern char *
-hexEncodeCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen);
+encodeHexCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen);
 
 /**
  * Return TRUE/1 if `string` is an encoded-hex string.
@@ -81,7 +81,7 @@ hexEncodeCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen);
  * @return
  */
 extern int
-hexEncodeValidate (const char *string);
+encodeHexValidate (const char *string);
 
 #ifdef __cplusplus
 }

@@ -35,30 +35,30 @@ struct BREthereumNetworkRecord {
 };
 
 extern BREthereumChainId
-ethNetworkGetChainId (BREthereumNetwork network) {
+networkGetChainId (BREthereumNetwork network) {
     networkInitilizeAllIfAppropriate();
     return network->chainId;
 }
 
 extern BREthereumHash
-ethNetworkGetGenesisBlockHeaderHash (BREthereumNetwork network) {
+networkGetGenesisBlockHeaderHash (BREthereumNetwork network) {
     networkInitilizeAllIfAppropriate();
     return network->genesisBlockHeaderHash;
 }
 
 extern BREthereumHash
-ethNetworkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network) {
+networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network) {
     networkInitilizeAllIfAppropriate();
     return network->trustedCheckpointBlockHeaderHash;
 }
 
 extern const char *
-ethNetworkGetName (BREthereumNetwork network) {
+networkGetName (BREthereumNetwork network) {
     return network->name;
 }
 
 extern char *
-ethNetworkCopyNameAsLowercase (BREthereumNetwork network) {
+networkCopyNameAsLowercase (BREthereumNetwork network) {
     char *networkName = strdup (network-> name);
     size_t networkNameLength = strlen (networkName);
 
@@ -69,29 +69,29 @@ ethNetworkCopyNameAsLowercase (BREthereumNetwork network) {
 }
 
 extern const char**
-ethNetworkGetSeeds (BREthereumNetwork network) {
+networkGetSeeds (BREthereumNetwork network) {
     return network->seeds;
 }
 
 extern size_t
-ethNetworkGetSeedsCount (BREthereumNetwork network) {
+networkGetSeedsCount (BREthereumNetwork network) {
     size_t i = 0;
     while (NULL != network->seeds[i]) i++;
     return i;
 }
 
 extern const char**
-ethNetworkGetEnodesBRD (BREthereumNetwork network) {
+networkGetEnodesBRD (BREthereumNetwork network) {
     return network->enodesBRD;
 }
 
 extern const char**
-ethNetworkGetEnodesCommunity (BREthereumNetwork network) {
+networkGetEnodesCommunity (BREthereumNetwork network) {
     return network->enodesCOM;
 }
 
 extern const char**
-ethNetworkGetEnodesLocal (BREthereumNetwork network, int parity) {
+networkGetEnodesLocal (BREthereumNetwork network, int parity) {
     return parity ?  network->enodesLCLParity : network->enodesLCLGeth;
 }
 
@@ -100,7 +100,7 @@ ethNetworkGetEnodesLocal (BREthereumNetwork network, int parity) {
 //
 // Mainnet
 //
-static struct BREthereumNetworkRecord ethNetworkMainnetRecord = {
+static struct BREthereumNetworkRecord ethereumMainnetRecord = {
     "mainnet",
     1,
     EMPTY_HASH_INIT,
@@ -141,7 +141,7 @@ static struct BREthereumNetworkRecord ethNetworkMainnetRecord = {
         "enode://654580048e9de8f7743ca38035c7ab7fbf2d59b6acd5b92cc031e4571b2c441fe9fc5bb261ada112fb39ca32c1ac7716d91a211b992693c9472ad6af42c5302a@127.0.0.1:30304",
         NULL }
 };
-const BREthereumNetwork ethNetworkMainnet = &ethNetworkMainnetRecord;
+const BREthereumNetwork ethereumMainnet = &ethereumMainnetRecord;
 
 /*
 // MainnetChainConfig is the chain parameters to run a node on the main network.
@@ -162,7 +162,7 @@ MainnetChainConfig = &ChainConfig{
 //
 // Testnet
 //
-static struct BREthereumNetworkRecord ethNetworkTestnetRecord = {
+static struct BREthereumNetworkRecord ethereumTestnetRecord = {
     "testnet", // aka "ropsten"
     3,
     EMPTY_HASH_INIT,
@@ -181,7 +181,7 @@ static struct BREthereumNetworkRecord ethNetworkTestnetRecord = {
     { NULL },
     { NULL }
 };
-const BREthereumNetwork ethNetworkTestnet = &ethNetworkTestnetRecord;
+const BREthereumNetwork ethereumTestnet = &ethereumTestnetRecord;
 
 /*
 // TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
@@ -201,7 +201,7 @@ TestnetChainConfig = &ChainConfig{
 //
 // Rinkeby
 //
-static struct BREthereumNetworkRecord ethNetworkRinkebyRecord = {
+static struct BREthereumNetworkRecord ethereumRinkebyRecord = {
     "rinkeby",
     4,
     EMPTY_HASH_INIT,
@@ -216,7 +216,7 @@ static struct BREthereumNetworkRecord ethNetworkRinkebyRecord = {
     { NULL },
     { NULL }
 };
-const BREthereumNetwork ethNetworkRinkeby = &ethNetworkRinkebyRecord;
+const BREthereumNetwork ethereumRinkeby = &ethereumRinkebyRecord;
 
 /*
 // RinkebyChainConfig contains the chain parameters to run a node on the Rinkeby test network.
@@ -286,27 +286,27 @@ networkInitilizeAllIfAppropriate (void) {
 
         // Mainnet
 
-        ethNetworkMainnetRecord.genesisBlockHeaderHash =
-        ethHashCreate ("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
+        ethereumMainnetRecord.genesisBlockHeaderHash =
+        hashCreate ("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
 
-        ethNetworkMainnetRecord.trustedCheckpointBlockHeaderHash =
-        ethHashCreate("0x04c2114a8cbe49ba5c37a03cc4b4b8d3adfc0bd2c78e0e726405dd84afca1d63");
+        ethereumMainnetRecord.trustedCheckpointBlockHeaderHash =
+        hashCreate("0x04c2114a8cbe49ba5c37a03cc4b4b8d3adfc0bd2c78e0e726405dd84afca1d63");
 
         // Testnet / 'Ropsten'
 
-        ethNetworkTestnetRecord.genesisBlockHeaderHash =
-        ethHashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
+        ethereumTestnetRecord.genesisBlockHeaderHash =
+        hashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
 
-        ethNetworkTestnetRecord.trustedCheckpointBlockHeaderHash =
-        ethHashCreate("0x1b1ba890510e06411fdee9bb64ca7705c56a1a4ce3559ddb34b3680c526cb419");
+        ethereumTestnetRecord.trustedCheckpointBlockHeaderHash =
+        hashCreate("0x1b1ba890510e06411fdee9bb64ca7705c56a1a4ce3559ddb34b3680c526cb419");
 
         // Rinkeby
 
-        ethNetworkRinkebyRecord.genesisBlockHeaderHash =
-        ethHashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+        ethereumRinkebyRecord.genesisBlockHeaderHash =
+        hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
         
-        ethNetworkRinkebyRecord.trustedCheckpointBlockHeaderHash =
-        ethHashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+        ethereumRinkebyRecord.trustedCheckpointBlockHeaderHash =
+        hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
 
         // Notable RACE
         needsInitialization = 0;

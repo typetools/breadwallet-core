@@ -350,8 +350,4 @@ final class Network implements com.breadwallet.crypto.Network {
     BRCryptoNetwork getCoreBRCryptoNetwork() {
         return core;
     }
-
-    String getNetworkNameETH() {
-        return getCoreBRCryptoNetwork().getNetworkNameETH();
-    }
 }

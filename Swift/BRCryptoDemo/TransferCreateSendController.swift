@@ -312,7 +312,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         recvField.text = "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg";
         updateView()
     }
-    
     // Network Fee Picker
 
     func numberOfComponents(in pickerView: UIPickerView) -> Int {

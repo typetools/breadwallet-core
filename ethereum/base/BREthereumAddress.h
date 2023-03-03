@@ -47,16 +47,16 @@ typedef struct {
 (_hexu((s)[36]) << 4) | _hexu((s)[37]), (_hexu((s)[38]) << 4) | _hexu((s)[39]) } })
 
 extern BREthereumAddress
-ethAddressCreate (const char *address);
+addressCreate (const char *address);
 
 extern BREthereumBoolean
-ethAddressValidateString(const char *string);
+addressValidateString(const char *string);
 
 /**
  * Create an EtherumAddress from a `key` - a BRKey that already has the PubKey provided!
  */
 extern BREthereumAddress
-ethAddressCreateKey (const BRKey *keyWithPubKeyProvided);
+addressCreateKey (const BRKey *keyWithPubKeyProvided);
 
 #define ADDRESS_ENCODED_CHARS    (2*ADDRESS_BYTES + 2 + 1)  // "0x" prefaced
 
@@ -65,11 +65,11 @@ ethAddressCreateKey (const BRKey *keyWithPubKeyProvided);
  *
  * @param address
  * @param useChecksum if true(1) return an address with checksummed characters.
- *
+ * 
  * @return newly allocated memory of char*
  */
 extern char *
-ethAddressGetEncodedString (BREthereumAddress address, int useChecksum);
+addressGetEncodedString (BREthereumAddress address, int useChecksum);
 
 
 /**
@@ -81,33 +81,33 @@ ethAddressGetEncodedString (BREthereumAddress address, int useChecksum);
  * @param string target to fill
  */
 extern void
-ethAddressFillEncodedString (BREthereumAddress address,
-                             int useChecksum,
-                             char *string);
+addressFillEncodedString (BREthereumAddress address,
+                          int useChecksum,
+                          char *string);
 
 extern BREthereumHash
-ethAddressGetHash (BREthereumAddress address);
+addressGetHash (BREthereumAddress address);
 
 extern BREthereumAddress
-ethAddressRlpDecode (BRRlpItem item,
+addressRlpDecode (BRRlpItem item,
                      BRRlpCoder coder);
 
 extern BRRlpItem
-ethAddressRlpEncode(BREthereumAddress address,
+addressRlpEncode(BREthereumAddress address,
                     BRRlpCoder coder);
 
 extern BREthereumBoolean
-ethAddressEqual (BREthereumAddress address1,
+addressEqual (BREthereumAddress address1,
                  BREthereumAddress address2);
 
 static inline int
-ethAddressHashValue (BREthereumAddress address) {
+addressHashValue (BREthereumAddress address) {
     return ((UInt160 *) &address)->u32[0];
 }
 
 static inline int
-ethAddressHashEqual (BREthereumAddress address1,
-                     BREthereumAddress address2) {
+addressHashEqual (BREthereumAddress address1,
+                  BREthereumAddress address2) {
     return 0 == memcmp (address1.bytes, address2.bytes, 20);
 }
 

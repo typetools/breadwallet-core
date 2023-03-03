@@ -19,15 +19,16 @@ typedef struct BREthereumFunctionRecord *BREthereumContractFunction;
 typedef struct BREthereumEventRecord *BREthereumContractEvent;
 typedef struct BREthereumContractRecord *BREthereumContract;
 
-extern BREthereumContract ethContractERC20;
-extern BREthereumContractFunction ethFunctionERC20Transfer; // "transfer(address,uint256)"
-extern BREthereumContractEvent ethEventERC20Transfer;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
+
+extern BREthereumContract contractERC20;
+extern BREthereumContractFunction functionERC20Transfer; // "transfer(address,uint256)"
+extern BREthereumContractEvent eventERC20Transfer;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
 
 /**
  *
  */
 extern const char *
-ethEventGetSelector (BREthereumContractEvent event);
+eventGetSelector (BREthereumContractEvent event);
 
 /**
  * Encode an Ehtereum function with arguments.  The specific arguments and their types are
@@ -48,7 +49,7 @@ ethEventGetSelector (BREthereumContractEvent event);
  * free (encoding);
  */
 extern const char *
-ethContractEncode (BREthereumContract contract, BREthereumContractFunction function, ...);
+contractEncode (BREthereumContract contract, BREthereumContractFunction function, ...);
 
 /**
  * Return the function for `encodeing` or NULL.
@@ -58,10 +59,10 @@ ethContractEncode (BREthereumContract contract, BREthereumContractFunction funct
  * @return
  */
 extern BREthereumContractFunction
-ethContractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding);
+contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding);
 
 extern BREthereumContractEvent
-ethContractLookupEventForTopic (BREthereumContract contract, const char *topic);
+contractLookupEventForTopic (BREthereumContract contract, const char *topic);
 
 
 //
@@ -71,26 +72,26 @@ ethContractLookupEventForTopic (BREthereumContract contract, const char *topic);
 #include "../util/BRUtil.h"
 
 private_extern UInt256
-ethFunctionERC20TransferDecodeAmount (BREthereumContractFunction function,
-                                      const char *data,
-                                      BRCoreParseStatus *status);
+functionERC20TransferDecodeAmount (BREthereumContractFunction function,
+                                   const char *data,
+                                   BRCoreParseStatus *status);
 
 private_extern char *
-ethFunctionERC20TransferDecodeAddress (BREthereumContractFunction function,
-                                       const char *data);
+functionERC20TransferDecodeAddress (BREthereumContractFunction function,
+                                    const char *data);
 
 private_extern char *
-ethEventERC20TransferDecodeAddress (BREthereumContractEvent event,
-                                    const char *topic);
+eventERC20TransferDecodeAddress (BREthereumContractEvent event,
+                                 const char *topic);
 
 private_extern char *
-ethEventERC20TransferEncodeAddress (BREthereumContractEvent event,
-                                    const char *address);
+eventERC20TransferEncodeAddress (BREthereumContractEvent event,
+                                 const char *address);
 
 private_extern UInt256
-ethEventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
-                                    const char *number,
-                                    BRCoreParseStatus *status);
+eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
+                                 const char *number,
+                                 BRCoreParseStatus *status);
 
 #ifdef __cplusplus
 }

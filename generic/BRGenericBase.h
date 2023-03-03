@@ -26,8 +26,8 @@ extern "C" {
  * network and b) in `cryptoNetworkCreateBuiltin()` when creating the BRCryptoNetwork for this
  * generic network.
  */
-#define GEN_NETWORK_TYPE_XRP        "xrp"
-#define GEN_NETWORK_TYPE_HBAR       "hbar"
+#   define GEN_NETWORK_TYPE_XRP        "xrp"
+//# define GEN_NETWORK_TYPE_HBAR       "hbar"
 //# define GEN_NETWORK_TYPE_XLM        "xlm"
 
     typedef struct BRGenericAccountRecord  *BRGenericAccount;
@@ -45,17 +45,17 @@ extern "C" {
 
     static inline int
     genericHashEqual (BRGenericHash gen1, BRGenericHash gen2) {
-        return uint256EQL (gen1.value, gen2.value);
+        return eqUInt256 (gen1.value, gen2.value);
     }
 
     static inline int
     genericHashIsEmpty (BRGenericHash gen) {
-        return uint256EQL (gen.value, UINT256_ZERO);
+        return eqUInt256 (gen.value, UINT256_ZERO);
     }
 
     static inline char *
     genericHashAsString (BRGenericHash gen) {
-        return hexEncodeCreate (NULL, gen.value.u8, sizeof (gen.value.u8));
+        return encodeHexCreate (NULL, gen.value.u8, sizeof (gen.value.u8));
     }
 
     static inline uint32_t
@@ -93,7 +93,7 @@ extern "C" {
         double rem;
         int negative;
 
-        return uint256Mul_Double (feeBasis->pricePerCostFactor,
+        return mulUInt256_Double (feeBasis->pricePerCostFactor,
                                   feeBasis->costFactor,
                                   overflow,
                                   &negative,
@@ -102,7 +102,7 @@ extern "C" {
 
     static inline int genFeeBasisIsEqual (const BRGenericFeeBasis *fb1,
                                           const BRGenericFeeBasis *fb2) {
-        return (uint256EQL (fb1->pricePerCostFactor, fb2->pricePerCostFactor) &&
+        return (eqUInt256 (fb1->pricePerCostFactor, fb2->pricePerCostFactor) &&
                 fb1->costFactor == fb2->costFactor);
     }
 
@@ -136,6 +136,8 @@ extern "C" {
         GENERIC_TRANSFER_STATE_DELETED,
     } BRGenericTransferStateType;
 
+#define GENERIC_TRANSFER_INCLUDED_ERROR_SIZE     16
+
     typedef struct {
         BRGenericTransferStateType type;
         union {
@@ -144,6 +146,8 @@ extern "C" {
                 uint64_t transactionIndex;
                 uint64_t timestamp;
                 BRGenericFeeBasis feeBasis;
+                BRCryptoBoolean success;
+                char error [GENERIC_TRANSFER_INCLUDED_ERROR_SIZE + 1];
             } included;
             BRGenericTransferSubmitError errored;
         } u;
@@ -157,11 +161,29 @@ extern "C" {
     genTransferStateCreateIncluded (uint64_t blockNumber,
                                     uint64_t transactionIndex,
                                     uint64_t timestamp,
-                                    BRGenericFeeBasis feeBasis) {
-        return (BRGenericTransferState) {
+                                    BRGenericFeeBasis feeBasis,
+                                    BRCryptoBoolean success,
+                                    const char *error) {
+        BRGenericTransferState result = (BRGenericTransferState) {
             GENERIC_TRANSFER_STATE_INCLUDED,
-            { .included = { blockNumber, transactionIndex, timestamp, feeBasis }}
+            { .included = {
+                blockNumber,
+                transactionIndex,
+                timestamp,
+                feeBasis,
+                success
+            }}
         };
+
+        memset (result.u.included.error, 0, GENERIC_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+        if (CRYPTO_FALSE == success) {
+            strlcpy (result.u.included.error,
+                     (NULL == error ? "unknown error" : error),
+                     GENERIC_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+        }
+
+        return result;
+
     }
 
     static inline BRGenericTransferState

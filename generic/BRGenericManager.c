@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "BRGenericPrivate.h"
 
@@ -40,14 +41,6 @@ genFeeBasisEncode (BRGenericFeeBasis feeBasis,
 static BRGenericFeeBasis
 genFeeBasisDecode (BRRlpItem item,
                    BRRlpCoder coder);
-
-static BRRlpItem
-genTransferStateEncode (BRGenericTransferState state,
-                        BRRlpCoder coder);
-
-static BRGenericTransferState
-genTransferStateDecode (BRRlpItem item,
-                        BRRlpCoder Coder);
 
 static OwnershipGiven BRArrayOf(BRGenericTransferAttribute)
 genTransferAttributesDecode (BRRlpItem item,
@@ -102,18 +95,23 @@ struct BRGenericManagerRecord {
 
         int rid;
 
-        int completed:1;
+        bool completed;
+        bool success;
     } brdSync;
+
+    BRGenericManagerSyncContext  syncContext;
+    BRGenericManagerSyncCallback syncCallback;
 };
 
 
 /// MARK: - File Service
 
-static const char *fileServiceTypeTransactions = "transactions";
+#define fileServiceTypeTransactions      "transactions"
 
-enum {
-    GENERIC_TRANSFER_VERSION_1
-};
+typedef enum {
+    GENERIC_TRANSFER_VERSION_1,
+    GENERIC_TRANSFER_VERSION_2,
+} BRGenericFileServiceTransferVersion;
 
 static UInt256
 fileServiceTypeTransferV1Identifier (BRFileServiceContext context,
@@ -132,7 +130,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData  data  = (BRRlpData) { bytesCount, bytes };
-    BRRlpItem  item  = rlpDataGetItem (coder, data);
+    BRRlpItem  item  = rlpGetItem (coder, data);
 
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
@@ -151,12 +149,12 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
     char *strHash   = genericHashAsString (*hash);
 
-    char *strAmount = uint256CoerceString (amount, 10);
+    char *strAmount = coerceString (amount, 10);
 
     int overflow = 0;
     UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
     assert (!overflow);
-    char *strFee = uint256CoerceString (fee,    10);
+    char *strFee = coerceString (fee,    10);
 
     uint64_t timestamp = (GENERIC_TRANSFER_STATE_INCLUDED == state.type
                           ? state.u.included.timestamp
@@ -180,6 +178,10 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                                                             blockHeight,
                                                             GENERIC_TRANSFER_STATE_ERRORED == state.type);
 
+    // Set the transfer's `state` and `attributes` from the read values.  For`state`, this will
+    // overwrite what `genManagerRecoverTransfer()` assigned but will be correct with the saved
+    // values.  Later, perhaps based on a BlocksetDB query, the state change to 'included error'.
+    genTransferSetState (transfer, state);
     genTransferSetAttributes (transfer, attributes);
 
     genTransferAttributeReleaseAll(attributes);
@@ -191,17 +193,18 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     free (strSource);
     free (strUids);
 
-    rlpItemRelease (coder, item);
+    rlpReleaseItem (coder, item);
     rlpCoderRelease(coder);
 
     return transfer;
 }
 
 static uint8_t *
-fileServiceTypeTransferV1Writer (BRFileServiceContext context,
-                                 BRFileService fs,
-                                 const void* entity,
-                                 uint32_t *bytesCount) {
+fileServiceTypeTransferWriter (BRFileServiceContext context,
+                               BRFileService fs,
+                               const void* entity,
+                               uint32_t *bytesCount,
+                               BRGenericFileServiceTransferVersion version) {
     BRGenericTransfer transfer = (BRGenericTransfer) entity;
 
     BRGenericHash    hash   = genTransferGetHash (transfer);
@@ -217,6 +220,11 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     char *strSource = genAddressAsString(source);
     char *strTarget = genAddressAsString(target);
 
+    BRGenericTransferStateEncodeVersion stateEncodeVersion =
+        (GENERIC_TRANSFER_VERSION_1 == version ? GEN_TRANSFER_STATE_ENCODE_V1
+         : (GENERIC_TRANSFER_VERSION_2 == version ? GEN_TRANSFER_STATE_ENCODE_V2
+            : GEN_TRANSFER_STATE_ENCODE_V1));
+
     BRRlpItem item = rlpEncodeList (coder, 9,
                                     rlpEncodeBytes (coder, hash.value.u8, sizeof (hash.value.u8)),
                                     rlpEncodeString (coder, transfer->uids),
@@ -225,12 +233,12 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
                                     rlpEncodeUInt256 (coder, amount, 0),
                                     rlpEncodeString (coder, transfer->type),
                                     genFeeBasisEncode (feeBasis, coder),
-                                    genTransferStateEncode (state, coder),
+                                    genTransferStateEncode (state, stateEncodeVersion, coder),
                                     genTransferAttributesEncode (transfer->attributes, coder));
 
-    BRRlpData data = rlpItemGetData (coder, item);
+    BRRlpData data = rlpGetData (coder, item);
 
-    rlpItemRelease (coder, item);
+    rlpReleaseItem (coder, item);
     rlpCoderRelease (coder);
 
     free (strSource); genAddressRelease (source);
@@ -240,19 +248,45 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     return data.bytes;
 }
 
-static void
-genManagerInitializeFileService (BRGenericManager gwm) {
-    if (1 != fileServiceDefineType (gwm->fileService, fileServiceTypeTransactions, GENERIC_TRANSFER_VERSION_1,
-                                    gwm,
-                                    fileServiceTypeTransferV1Identifier,
-                                    fileServiceTypeTransferV1Reader,
-                                    fileServiceTypeTransferV1Writer) ||
-
-        1 != fileServiceDefineCurrentVersion (gwm->fileService, fileServiceTypeTransactions,
-                                              GENERIC_TRANSFER_VERSION_1))
-
-        return; //  bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
+static uint8_t *
+fileServiceTypeTransferV1Writer (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 const void* entity,
+                                 uint32_t *bytesCount) {
+    return fileServiceTypeTransferWriter (context, fs, entity, bytesCount, GENERIC_TRANSFER_VERSION_1);
 }
+
+static uint8_t *
+fileServiceTypeTransferV2Writer (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 const void* entity,
+                                 uint32_t *bytesCount) {
+    return fileServiceTypeTransferWriter (context, fs, entity, bytesCount, GENERIC_TRANSFER_VERSION_2);
+}
+
+static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
+    {
+        fileServiceTypeTransactions,
+        GENERIC_TRANSFER_VERSION_2, // current version
+        2,
+        {
+            {
+                GENERIC_TRANSFER_VERSION_1,
+                fileServiceTypeTransferV1Identifier,
+                fileServiceTypeTransferV1Reader,
+                fileServiceTypeTransferV1Writer
+            },
+
+            {
+                GENERIC_TRANSFER_VERSION_2,
+                fileServiceTypeTransferV1Identifier,
+                fileServiceTypeTransferV1Reader,
+                fileServiceTypeTransferV2Writer
+            },
+        }
+    }
+};
+static size_t fileServiceSpecificationsCount = (sizeof (fileServiceSpecifications) / sizeof (BRFileServiceTypeSpecification));
 
 /// MARK: - Manager
 
@@ -264,6 +298,8 @@ genManagerCreate (BRGenericClient client,
                   uint64_t accountTimestamp,
                   const char *storagePath,
                   uint32_t syncPeriodInSeconds,
+                  BRGenericManagerSyncContext  syncContext,
+                  BRGenericManagerSyncCallback syncCallback,
                   uint64_t blockHeight) {
     BRGenericManager gwm = calloc (1, sizeof (struct BRGenericManagerRecord));
 
@@ -305,8 +341,11 @@ genManagerCreate (BRGenericClient client,
     const char *networkName  = (genNetworkIsMainnet (gwm->network) ? "mainnet" : "testnet");
     const char *currencyCode = type;
 
-    gwm->fileService = fileServiceCreate (storagePath, currencyCode, networkName, gwm, NULL);
-    genManagerInitializeFileService (gwm);
+    gwm->fileService =  fileServiceCreateFromTypeSpecfications (storagePath, currencyCode, networkName,
+                                                   gwm,
+                                                   NULL,
+                                                   fileServiceSpecificationsCount,
+                                                   fileServiceSpecifications);
 
     // Wallet ??
 
@@ -317,8 +356,12 @@ genManagerCreate (BRGenericClient client,
     gwm->brdSync.rid = -1;
     gwm->brdSync.begBlockNumber = earliestBlockNumber;
     gwm->brdSync.endBlockNumber = MAX (earliestBlockNumber, blockHeight);
-    gwm->brdSync.completed = 0;
+    gwm->brdSync.completed = false;
+    gwm->brdSync.success = false;
 
+    gwm->syncContext  = syncContext;
+    gwm->syncCallback = syncCallback;
+    
     eventHandlerSetTimeoutDispatcher (gwm->handler,
                                       1000 * syncPeriodInSeconds,
                                       (BREventDispatcher) genManagerPeriodicDispatcher,
@@ -378,9 +421,39 @@ genManagerDisconnect (BRGenericManager gwm) {
                            // Event
 }
 
+extern int
+genManagerIsConnected (BRGenericManager gwm) {
+    return eventHandlerIsRunning (gwm->handler);
+}
+
 extern void
 genManagerSync (BRGenericManager gwm) {
-    return;
+    genManagerSyncToDepth (gwm, CRYPTO_SYNC_DEPTH_FROM_CREATION);
+}
+
+extern void
+genManagerSyncToDepth (BRGenericManager gwm,
+                       BRCryptoSyncDepth depth) {
+    pthread_mutex_lock (&gwm->lock);
+
+    // Abort an ongoing sync by incrementing the `rid` - any callback for an in-progress
+    // client callback will be ignored.
+    gwm->brdSync.rid += 1;
+
+    // Avoid the periodic dispatcher from mucking with the 'begBlockNumber' - which it might
+    // do if success is `true`.
+    gwm->brdSync.completed = false;
+    gwm->brdSync.success = false;
+
+    // For a GEN sync, just start at 0 always.
+    switch (depth) {
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND:
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK:
+        case CRYPTO_SYNC_DEPTH_FROM_CREATION:
+            gwm->brdSync.begBlockNumber = 0;
+            break;
+    }
+    pthread_mutex_unlock (&gwm->lock);
 }
 
 extern BRGenericAddress
@@ -460,7 +533,9 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                          genTransferStateCreateIncluded (blockHeight,
                                                          GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
                                                          timestamp,
-                                                         feeBasis));
+                                                         feeBasis,
+                                                         0 == error,
+                                                         NULL));
 
     genAddressRelease (source);
     genAddressRelease (target);
@@ -472,7 +547,8 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                               uint8_t *bytes,
                                               size_t   bytesCount,
                                               uint64_t timestamp,
-                                              uint64_t blockHeight) {
+                                              uint64_t blockHeight,
+                                              int error) {
     pthread_mutex_lock (&gwm->lock);
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
     BRArrayOf(BRGenericTransfer) transfers;
@@ -483,7 +559,9 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                              genTransferStateCreateIncluded (blockHeight,
                                                              GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
                                                              timestamp,
-                                                             genTransferGetFeeBasis (transfer)));
+                                                             genTransferGetFeeBasis (transfer),
+                                                             0 == error,
+                                                             NULL));
         array_add (transfers, transfer);
     }
     pthread_mutex_unlock (&gwm->lock);
@@ -526,8 +604,8 @@ genManagerPeriodicDispatcher (BREventHandler handler,
 
     // Handle a BRD Sync:
 
-    // 1) check if the prior sync has completed.
-    if (gwm->brdSync.completed) {
+    // 1) check if the prior sync has completed successfully
+    if (gwm->brdSync.completed && gwm->brdSync.success) {
         // 1a) if so, advance the sync range by updating `begBlockNumber`
         gwm->brdSync.begBlockNumber = (gwm->brdSync.endBlockNumber >=  GWM_BRD_SYNC_START_BLOCK_OFFSET
                                        ? gwm->brdSync.endBlockNumber - GWM_BRD_SYNC_START_BLOCK_OFFSET
@@ -542,8 +620,10 @@ genManagerPeriodicDispatcher (BREventHandler handler,
         BRGenericAddress accountAddress = genManagerGetAccountAddress(gwm);
         char *address = genAddressAsString (accountAddress);
         
-        // 3a) Save the current requestId
+        // 3a) Save the current requestId and mark as not completed.
         gwm->brdSync.rid = gwm->requestId;
+        gwm->brdSync.completed = false;
+        gwm->brdSync.success = false;
 
         // 3b) Query all transactions; each one found will have bwmAnnounceTransaction() invoked
         // which will process the transaction into the wallet.
@@ -557,23 +637,30 @@ genManagerPeriodicDispatcher (BREventHandler handler,
                                       address,
                                       gwm->brdSync.begBlockNumber,
                                       gwm->brdSync.endBlockNumber,
-                                      gwm->requestId++);
+                                      gwm->brdSync.rid);
         } else {
             gwm->client.getTransactions (gwm->client.context,
                                          gwm,
                                          address,
                                          gwm->brdSync.begBlockNumber,
                                          gwm->brdSync.endBlockNumber,
-                                         gwm->requestId++);
+                                         gwm->brdSync.rid);
         }
 
+        // 3c) On to the next rid
+        gwm->requestId += 1;
 
         free (address);
         genAddressRelease(accountAddress);
-
-        // 3c) Mark as not completed
-        gwm->brdSync.completed = 0;
     }
+
+    if (NULL != gwm->syncCallback)
+        gwm->syncCallback (gwm->syncContext,
+                           gwm,
+                           gwm->brdSync.begBlockNumber,
+                           gwm->brdSync.endBlockNumber,
+                           // lots of incremental sync 'slop'
+                           2 * GWM_BRD_SYNC_START_BLOCK_OFFSET);
 
     // End handling a BRD Sync
 }
@@ -617,8 +704,10 @@ genManagerAnnounceTransferComplete (BRGenericManager manager,
                                     int rid,
                                     int success) {
     pthread_mutex_lock (&manager->lock);
-    if (rid == manager->brdSync.rid)
-        manager->brdSync.completed = success;
+    if (rid == manager->brdSync.rid) {
+        manager->brdSync.completed = true;
+        manager->brdSync.success = (bool) success;
+    }
     pthread_mutex_unlock (&manager->lock);
 }
 
@@ -653,17 +742,30 @@ genFeeBasisDecode (BRRlpItem item,
     };
 }
 
-static BRRlpItem
+extern BRRlpItem
 genTransferStateEncode (BRGenericTransferState state,
+                        BRGenericTransferStateEncodeVersion version,
                         BRRlpCoder coder) {
     switch (state.type) {
         case GENERIC_TRANSFER_STATE_INCLUDED:
-            return rlpEncodeList (coder, 5,
-                                  rlpEncodeUInt64  (coder, state.type, 0),
-                                  rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
-                                  rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
-                                  rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
-                                  genFeeBasisEncode (state.u.included.feeBasis, coder));
+            switch (version) {
+                case GEN_TRANSFER_STATE_ENCODE_V1:
+                    return rlpEncodeList (coder, 5,
+                                          rlpEncodeUInt64  (coder, state.type, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
+                                          genFeeBasisEncode (state.u.included.feeBasis, coder));
+                case GEN_TRANSFER_STATE_ENCODE_V2:
+                    return rlpEncodeList (coder, 7,
+                                          rlpEncodeUInt64  (coder, state.type, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
+                                          genFeeBasisEncode (state.u.included.feeBasis, coder),
+                                          rlpEncodeUInt64  (coder, state.u.included.success, 0),
+                                          rlpEncodeString  (coder, state.u.included.error));
+            }
 
         case GENERIC_TRANSFER_STATE_ERRORED:
             return rlpEncodeList2 (coder,
@@ -680,7 +782,7 @@ genTransferStateEncode (BRGenericTransferState state,
     }
 }
 
-static BRGenericTransferState
+extern BRGenericTransferState
 genTransferStateDecode (BRRlpItem item,
                         BRRlpCoder coder) {
     size_t itemsCount = 0;
@@ -689,19 +791,30 @@ genTransferStateDecode (BRRlpItem item,
 
     BRGenericTransferStateType type = (BRGenericTransferStateType) rlpDecodeUInt64 (coder, items[0], 0);
     switch (type) {
-        case GENERIC_TRANSFER_STATE_INCLUDED:
-            assert (5 == itemsCount);
+        case GENERIC_TRANSFER_STATE_INCLUDED: {
+            assert (5 == itemsCount || 7 == itemsCount);
 
-            return (BRGenericTransferState) {
+            BRGenericTransferState state = (BRGenericTransferState) {
                 type,
                 { .included = {
                     rlpDecodeUInt64  (coder, items[1], 0),
                     rlpDecodeUInt64  (coder, items[2], 0),
                     rlpDecodeUInt64  (coder, items[3], 0),
-                    genFeeBasisDecode (items[4], coder)
+                    genFeeBasisDecode (items[4], coder),
+                    (5 == itemsCount ? CRYPTO_TRUE : ((BRCryptoBoolean) rlpDecodeUInt64(coder, items[5], 0)))
                 }}
             };
 
+            memset (state.u.included.error, 0, sizeof(state.u.included.error));
+            if (7 == itemsCount) {
+                char *error = rlpDecodeString(coder, items[6]);
+                strlcpy (state.u.included.error, error, sizeof(state.u.included.error));
+                free (error);
+            }
+
+            return state;
+        }
+            
         case GENERIC_TRANSFER_STATE_ERRORED: {
             assert (2 == itemsCount);
             return (BRGenericTransferState) {

@@ -63,16 +63,16 @@ typedef struct BREthereumEtherStruct {
 #define EMPTY_ETHER_INIT  ((const BREthereumEther) { UINT256_ZERO })
     
 extern BREthereumEther
-ethEtherCreateZero (void);
+etherCreateZero (void);
 
 extern BREthereumEther
-ethEtherCreate(const UInt256 value);
+etherCreate(const UInt256 value);
 
 extern BREthereumEther
-ethEtherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow);
+etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow);
 
 extern BREthereumEther
-ethEtherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
+etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
 
 /**
  * Create Ether from a decimal string in unit.  The `number` must be either an integer or have
@@ -83,10 +83,10 @@ ethEtherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
  *
  */
 extern BREthereumEther
-ethEtherCreateString(const char *string, BREthereumEtherUnit unit, BRCoreParseStatus *status);
+etherCreateString(const char *string, BREthereumEtherUnit unit, BRCoreParseStatus *status);
 
 extern UInt256
-ethEtherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
+etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
 
 /**
  * Return a decimal string representing `ether` in `unit`.
@@ -97,43 +97,43 @@ ethEtherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
  * @return A newly allocated string (you own it).
  */
 extern char *
-ethEtherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
+etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
 
 extern BRRlpItem
-ethEtherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);
+etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);
 
 extern BREthereumEther
-ethEtherRlpDecode (BRRlpItem item, BRRlpCoder coder);
+etherRlpDecode (BRRlpItem item, BRRlpCoder coder);
     
 extern BREthereumEther
-ethEtherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow);
+etherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow);
 
 extern BREthereumEther
-ethEtherSub (BREthereumEther e1, BREthereumEther e2, int *negative);
+etherSub (BREthereumEther e1, BREthereumEther e2, int *negative);
 
 //
 // Comparisons
 //
 extern BREthereumBoolean
-ethEtherIsEQ (BREthereumEther e1, BREthereumEther e2);
+etherIsEQ (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
-ethEtherIsGT (BREthereumEther e1, BREthereumEther e2);
+etherIsGT (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
-ethEtherIsGE (BREthereumEther e1, BREthereumEther e2);
+etherIsGE (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
-ethEtherIsLT (BREthereumEther e1, BREthereumEther e2);
+etherIsLT (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
-ethEtherIsLE (BREthereumEther e1, BREthereumEther e2);
+etherIsLE (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
-ethEtherIsZero (BREthereumEther e);
+etherIsZero (BREthereumEther e);
 
 extern BREthereumComparison
-ethEtherCompare (BREthereumEther e1, BREthereumEther e2);
+etherCompare (BREthereumEther e1, BREthereumEther e2);
 
 #ifdef __cplusplus
 }
