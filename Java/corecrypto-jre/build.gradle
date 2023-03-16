@@ -1,3 +1,9 @@
+plugins {
+    // Checker Framework pluggable type-checking
+    id 'org.checkerframework' version '0.6.25'
+}
+
+apply plugin: 'org.checkerframework'
 apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 
@@ -22,13 +28,36 @@ dependencies {
     api files("$rootProject.projectDir/libs/guava-31.1-jre.jar")
 
     implementation project(':corenative-jre')
-    //implementation deps.guavaJre
+    implementation deps.guavaJre
     implementation deps.androidAppCompatV7
     implementation deps.jacksonAnnotations
     implementation deps.jacksonCore
     implementation deps.jacksonDatabind
 
     testImplementation deps.junit
+}
+
+checkerFramework {
+    excludeTests = true
+    checkers = [
+             //'org.checkerframework.checker.nullness.NullnessChecker',
+             'org.checkerframework.checker.signedness.SignednessChecker',
+            // 'org.checkerframework.checker.resourceleak.ResourceLeakChecker',
+            //'org.checkerframework.checker.signature.SignatureChecker'
+    ]
+    extraJavacArgs = [
+            // Uncomment -proc:none to disable all annotation processing and speed up the build.
+            // '-proc:none',
+            '-Awarns',
+            '-AshowSuppressWarningsStrings',
+            '-AshowPrefixInWarningMessages',
+            //'-AsuggestPureMethods',
+            //'-AcheckPurityAnnotations',
+            '-ArequirePrefixInWarningSuppressions',
+            '-AwarnUnneededSuppressions',
+            '-Xmaxwarns',
+            '10000',
+    ]
 }
 
 publishing {

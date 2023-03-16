@@ -1,9 +1,3 @@
-plugins {
-    // Checker Framework pluggable type-checking
-    id 'org.checkerframework' version '0.6.25'
-}
-
-apply plugin: 'org.checkerframework'
 apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 
@@ -21,32 +15,6 @@ dependencies {
     implementation deps.jacksonDatabindGuava
 
     testImplementation deps.junit
-}
-
-//compileJava.options.compilerArgs = ['-g','-Xmaxwarns 10000','-Xlint','-Xlint:-classfile']
-compileJava.options.compilerArgs = ['-g','-Xlint','-Xlint:-classfile']
-
-checkerFramework {
-    excludeTests = true
-    checkers = [
-            // 'org.checkerframework.checker.nullness.NullnessChecker',
-            // 'org.checkerframework.checker.resourceleak.ResourceLeakChecker',
-            'org.checkerframework.checker.signature.SignatureChecker',
-    ]
-    extraJavacArgs = [
-            // Uncomment -proc:none to disable all annotation processing and speed up the build.
-            // '-proc:none',
-            '-Awarns',
-            '-AshowSuppressWarningStrings',
-            '-AshowPrefixInWarningSuppressions',
-            '-AhowPrefixInWarningSuppressionsuggestPureMethods',
-            // '-AcheckPurityAnnotations',
-            '-ArequirePrefixInWarningSuppressions',
-            '-AwarnUnneededSuppressions',
-            //'-ApermitStaticOwning',
-            // Suppresses "No processor claimed any of these annotations ..." warning.
-            //'-Xlint:-processing'
-    ]
 }
 
 publishing {

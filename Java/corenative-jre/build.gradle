@@ -21,7 +21,7 @@ dependencies {
     api deps.jnaJre
     api files("$rootProject.projectDir/libs/guava-31.1-jre.jar")
 
-    //implementation deps.guavaJre
+    implementation deps.guavaJre
 
     testImplementation deps.junit
 }
