@@ -21,6 +21,8 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
+    - name: check javac version
+      run: javac -version
     - name: build with type checking
       run: ./gradlew --console=plain assemble
       working-directory: ./Java
