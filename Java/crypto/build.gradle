@@ -7,6 +7,7 @@ targetCompatibility = '1.8'
 dependencies {
     api deps.guavaAndroid
     api deps.okhttp
+    api files("$rootProject.projectDir/libs/guava-31.1-jre.jar")
 
     implementation deps.androidAppCompatV7
     implementation deps.jacksonAnnotations

@@ -25,6 +25,11 @@ buildscript {
     }
 }
 
+plugins {
+    // Checker Framework pluggable type-checking
+    id 'org.checkerframework' version '0.6.25' apply false
+}
+
 allprojects {
     repositories {
         google()
@@ -43,6 +48,37 @@ allprojects {
                 }
             }
         }
+    }
+}
+
+subprojects { subproject ->
+    apply plugin: 'org.checkerframework'
+
+    checkerFramework {
+        excludeTests = true
+        checkers = [
+             //'org.checkerframework.checker.nullness.NullnessChecker',
+             'org.checkerframework.checker.signedness.SignednessChecker',
+            // 'org.checkerframework.checker.resourceleak.ResourceLeakChecker',
+            //'org.checkerframework.checker.signature.SignatureChecker'
+        ]
+        extraJavacArgs = [
+            // Uncomment -proc:none to disable all annotation processing and speed up the build.
+            // '-proc:none',
+            '-Awarns',
+            '-AshowSuppressWarningsStrings',
+            '-AshowPrefixInWarningMessages',
+            //'-AsuggestPureMethods',
+            //'-AcheckPurityAnnotations',
+            '-ArequirePrefixInWarningSuppressions',
+            '-AwarnUnneededSuppressions',
+            '-Xmaxwarns',
+            '10000',
+        ]
+    }
+    dependencies {
+        checkerFramework 'org.checkerframework:checker:3.32.0'
+        //implementation 'org.checkerframework:checker-qual:3.32.0'
     }
 }
 
