@@ -19,6 +19,7 @@ sourceSets {
 
 dependencies {
     api project(':crypto')
+    api files("$rootProject.projectDir/libs/guava-31.1-jre.jar")
 
     implementation project(':corenative-jre')
     implementation deps.guavaJre

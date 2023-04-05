@@ -1,16 +1,7 @@
 buildscript {
-    ext.androidConfig = [
-        'compileSdkVersion':        28,
-        'minSdkVersion':            23,
-        'targetSdkVersion':         28,
-    ]
     ext.versions = [
         'androidAppCompatV7':       '28.0.0',
-        'androidConstraintLayout':  '1.1.3',
-        'androidRecyclerView':      '28.0.0',
-        'androidTestRunner':        '1.0.2',
-        'androidTestEspresso':      '3.0.2',
-        'guava':                    '28.1',
+        'guava':                    '31.1',
         'okhttp':                   '4.2.0',
         'jackson':                  '2.10.1',
         'jna':                      '5.4.0',
@@ -18,10 +9,6 @@ buildscript {
     ]
     ext.deps = [
         'androidAppCompatV7':       "com.android.support:appcompat-v7:${versions.androidAppCompatV7}",
-        'androidConstraintLayout':  "com.android.support.constraint:constraint-layout:${versions.androidConstraintLayout}",
-        'androidRecyclerView':      "com.android.support:recyclerview-v7:${versions.androidRecyclerView}",
-        'androidTestRunner':        "com.android.support.test:runner:${versions.androidTestRunner}",
-        'androidTestEspresso':      "com.android.support.test.espresso:espresso-core:${versions.androidTestEspresso}",
         'guavaAndroid':             "com.google.guava:guava:${versions.guava}-android",
         'guavaJre':                 "com.google.guava:guava:${versions.guava}-jre",
         'okhttp':                   "com.squareup.okhttp3:okhttp:${versions.okhttp}",
@@ -29,24 +16,24 @@ buildscript {
         'jacksonAnnotations':       "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}",
         'jacksonDatabind':          "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}",
         'jacksonDatabindGuava':     "com.fasterxml.jackson.datatype:jackson-datatype-guava:${versions.jackson}",
-        'jnaAndroid':               "net.java.dev.jna:jna:${versions.jna}@aar",
         'jnaJre':                   "net.java.dev.jna:jna:${versions.jna}",
         'junit':                    "junit:junit:${versions.junit}",
     ]
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.2'
-        classpath 'digital.wup:android-maven-publish:3.6.2'
-    }
+}
+
+plugins {
+    // Checker Framework pluggable type-checking
+    id 'org.checkerframework' version '0.6.25' apply false
 }
 
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     afterEvaluate {
         def publishing = extensions.findByType(PublishingExtension)
@@ -61,6 +48,37 @@ allprojects {
                 }
             }
         }
+    }
+}
+
+subprojects { subproject ->
+    apply plugin: 'org.checkerframework'
+
+    checkerFramework {
+        excludeTests = true
+        checkers = [
+             //'org.checkerframework.checker.nullness.NullnessChecker',
+             'org.checkerframework.checker.signedness.SignednessChecker',
+            // 'org.checkerframework.checker.resourceleak.ResourceLeakChecker',
+            //'org.checkerframework.checker.signature.SignatureChecker'
+        ]
+        extraJavacArgs = [
+            // Uncomment -proc:none to disable all annotation processing and speed up the build.
+            // '-proc:none',
+            '-Awarns',
+            '-AshowSuppressWarningsStrings',
+            '-AshowPrefixInWarningMessages',
+            //'-AsuggestPureMethods',
+            //'-AcheckPurityAnnotations',
+            '-ArequirePrefixInWarningSuppressions',
+            '-AwarnUnneededSuppressions',
+            '-Xmaxwarns',
+            '10000',
+        ]
+    }
+    dependencies {
+        checkerFramework 'org.checkerframework:checker:3.32.0'
+        //implementation 'org.checkerframework:checker-qual:3.32.0'
     }
 }
 
