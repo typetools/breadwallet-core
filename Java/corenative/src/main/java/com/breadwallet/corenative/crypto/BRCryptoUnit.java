@@ -13,6 +13,8 @@ import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
+import org.checkerframework.checker.signedness.qual.Signed;
+
 public class BRCryptoUnit extends PointerType {
 
     public static BRCryptoUnit createAsBase(BRCryptoCurrency currency, String uids, String name, String symbol) {
@@ -26,8 +28,10 @@ public class BRCryptoUnit extends PointerType {
         );
     }
 
+    // decimals should be annotated @IntRange(from = 0, to = 255) but not allowed on non integer types
     public static BRCryptoUnit create(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, UnsignedInteger decimals) {
-        byte decimalsAsByte = UnsignedBytes.checkedCast(decimals.longValue());
+        @SuppressWarnings({"signedness:cast.unsafe", "value:argument"})
+        @Signed byte decimalsAsByte = (@Signed byte) UnsignedBytes.checkedCast(decimals.longValue());
         return new BRCryptoUnit(
                 CryptoLibraryDirect.cryptoUnitCreate(
                         currency.getPointer(),

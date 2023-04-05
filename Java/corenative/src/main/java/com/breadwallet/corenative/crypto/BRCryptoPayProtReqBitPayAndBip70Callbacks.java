@@ -28,6 +28,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoPayProtReqBitPayAndBip70Callbacks extends Structure {
 
     public static final String PKI_TYPE_NONE        = "none";
@@ -178,6 +180,7 @@ public class BRCryptoPayProtReqBitPayAndBip70Callbacks extends Structure {
         return Optional.of(certList);
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     private static int[] getNativeSizeTArray(Pointer ptr, int count) {
         int[] sizetArray = new int[count];
 
@@ -196,7 +199,7 @@ public class BRCryptoPayProtReqBitPayAndBip70Callbacks extends Structure {
                 break;
             case 8:
                 long[] lengthLongArray = ptr.getLongArray(0, count);
-                for (int i = 0; i < count; i++) sizetArray[i] = UnsignedInts.checkedCast(lengthLongArray[i]);
+                for (int i = 0; i < count; i++) sizetArray[i] = (@SignedPositive int) UnsignedInts.checkedCast(lengthLongArray[i]);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid native size");

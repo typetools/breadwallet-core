@@ -16,6 +16,8 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoPaymentProtocolPayment extends PointerType {
 
     public static Optional<BRCryptoPaymentProtocolPayment> create(BRCryptoPaymentProtocolRequest request,
@@ -39,6 +41,7 @@ public class BRCryptoPaymentProtocolPayment extends PointerType {
         super(address);
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     public Optional<byte[]> encode() {
         Pointer thisPtr = this.getPointer();
 
@@ -46,7 +49,7 @@ public class BRCryptoPaymentProtocolPayment extends PointerType {
         Pointer returnValue = CryptoLibraryDirect.cryptoPaymentProtocolPaymentEncode(thisPtr, length);
         try {
             return Optional.fromNullable(returnValue)
-                    .transform(v -> v.getByteArray(0, UnsignedInts.checkedCast(length.getValue().longValue())));
+                    .transform(v -> v.getByteArray(0, (@SignedPositive int) UnsignedInts.checkedCast(length.getValue().longValue())));
         } finally {
             if (returnValue != null) Native.free(Pointer.nativeValue(returnValue));
         }

@@ -17,6 +17,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoTransferState extends Structure {
 
     public int typeEnum;
@@ -30,9 +32,9 @@ public class BRCryptoTransferState extends Structure {
         public static class included_struct extends Structure {
             private static int CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE = 16;
 
-            public long blockNumber;
-            public long transactionIndex;
-            public long timestamp;
+            public @SignedPositive long blockNumber;
+            public @SignedPositive long transactionIndex;
+            public @SignedPositive long timestamp;
             public BRCryptoFeeBasis feeBasis;
             public int success = BRCryptoBoolean.CRYPTO_TRUE;
             public byte[] error = new byte[CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1];
@@ -45,7 +47,7 @@ public class BRCryptoTransferState extends Structure {
                 return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "feeBasis", "success", "error");
             }
 
-            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis, int success, byte[] error) {
+            public included_struct(@SignedPositive long blockNumber, @SignedPositive long transactionIndex, @SignedPositive long timestamp, BRCryptoFeeBasis feeBasis, int success, byte[] error) {
                 super();
                 this.blockNumber = blockNumber;
                 this.transactionIndex = transactionIndex;

@@ -53,6 +53,7 @@ public class BRCryptoSigner extends PointerType {
         Pointer keyPtr = key.getPointer();
 
         SizeT length = CryptoLibraryDirect.cryptoSignerSignLength(thisPtr, keyPtr, digest, new SizeT(digest.length));
+        @SuppressWarnings("value:argument")  // length.longValue() should fit in an int
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 

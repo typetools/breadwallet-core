@@ -31,6 +31,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoWalletManager extends PointerType {
 
     public static void wipe(BRCryptoNetwork network, String path) {
@@ -92,7 +94,8 @@ public class BRCryptoWalletManager extends PointerType {
         Pointer walletsPtr = CryptoLibraryDirect.cryptoWalletManagerGetWallets(thisPtr, count);
         if (null != walletsPtr) {
             try {
-                int walletsSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                @SuppressWarnings("signedness:cast.unsafe")
+                @SignedPositive int walletsSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer walletPtr : walletsPtr.getPointerArray(0, walletsSize)) {
                     wallets.add(new BRCryptoWallet(walletPtr));
                 }

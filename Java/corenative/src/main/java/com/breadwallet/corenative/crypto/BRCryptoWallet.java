@@ -24,6 +24,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 public class BRCryptoWallet extends PointerType {
 
     public BRCryptoWallet() {
@@ -64,7 +67,8 @@ public class BRCryptoWallet extends PointerType {
         Pointer transfersPtr = CryptoLibraryDirect.cryptoWalletGetTransfers(thisPtr, count);
         if (null != transfersPtr) {
             try {
-                int transfersSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                @SuppressWarnings("signedness:cast.unsafe")
+                @SignedPositive int transfersSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer transferPtr: transfersPtr.getPointerArray(0, transfersSize)) {
                     transfers.add(new BRCryptoTransfer(transferPtr));
                 }
@@ -83,12 +87,13 @@ public class BRCryptoWallet extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasTransfer(thisPtr, transfer.getPointer());
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getTransferAttributeCount(@Nullable BRCryptoAddress target) {
         Pointer thisPtr = this.getPointer();
         Pointer targetPtr = (null == target ? null : target.getPointer());
 
         return UnsignedLong.fromLongBits(
-                CryptoLibraryDirect.cryptoWalletGetTransferAttributeCount(
+                (@Unsigned long) CryptoLibraryDirect.cryptoWalletGetTransferAttributeCount(
                         thisPtr,
                         targetPtr
                 ).longValue()

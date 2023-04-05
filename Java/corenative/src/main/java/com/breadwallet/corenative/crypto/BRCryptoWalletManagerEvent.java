@@ -13,6 +13,8 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoWalletManagerEvent extends Structure {
 
     public int typeEnum;
@@ -186,7 +188,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
 
         public static class blockHeight_struct extends Structure {
 
-            public long value;
+            public @SignedPositive long value;
 
             public blockHeight_struct() {
                 super();
@@ -196,7 +198,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
                 return Arrays.asList("value");
             }
 
-            public blockHeight_struct(long value) {
+            public blockHeight_struct(@SignedPositive long value) {
                 super();
                 this.value = value;
             }

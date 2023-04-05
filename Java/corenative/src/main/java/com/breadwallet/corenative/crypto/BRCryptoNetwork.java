@@ -22,6 +22,9 @@ import com.sun.jna.PointerType;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 public class BRCryptoNetwork extends PointerType {
 
     public static Optional<BRCryptoNetwork> findBuiltin (String uids) {
@@ -38,7 +41,8 @@ public class BRCryptoNetwork extends PointerType {
 
         if (null != builtinsPtr) {
             try {
-                int builtinsSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                @SuppressWarnings("signedness:cast.unsafe")
+                @SignedPositive int builtinsSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer builtinPtr : builtinsPtr.getPointerArray(0, builtinsSize)) {
                     builtins.add(new BRCryptoNetwork(builtinPtr));
                 }
@@ -90,10 +94,11 @@ public class BRCryptoNetwork extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoNetworkHasCurrency(thisPtr, currency.getPointer());
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getCurrencyCount() {
         Pointer thisPtr = this.getPointer();
 
-        return UnsignedLong.fromLongBits(CryptoLibraryDirect.cryptoNetworkGetCurrencyCount(thisPtr).longValue());
+        return UnsignedLong.fromLongBits((@Unsigned long) CryptoLibraryDirect.cryptoNetworkGetCurrencyCount(thisPtr).longValue());
     }
 
     public BRCryptoCurrency getCurrency(UnsignedLong index) {
@@ -115,7 +120,8 @@ public class BRCryptoNetwork extends PointerType {
         Pointer feesPtr = CryptoLibraryDirect.cryptoNetworkGetNetworkFees(thisPtr, count);
         if (null != feesPtr) {
             try {
-                int feesSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                @SuppressWarnings("signedness:cast.unsafe")
+                @SignedPositive int feesSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer feePtr: feesPtr.getPointerArray(0, feesSize)) {
                     fees.add(new BRCryptoNetworkFee(feePtr));
                 }
@@ -230,11 +236,12 @@ public class BRCryptoNetwork extends PointerType {
         ).transform(BRCryptoUnit::new);
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getUnitCount(BRCryptoCurrency currency) {
         Pointer thisPtr = this.getPointer();
 
         return UnsignedLong.fromLongBits(
-                CryptoLibraryDirect.cryptoNetworkGetUnitCount(
+                (@Unsigned long) CryptoLibraryDirect.cryptoNetworkGetUnitCount(
                         thisPtr,
                         currency.getPointer()
                 ).longValue()
@@ -268,7 +275,8 @@ public class BRCryptoNetwork extends PointerType {
         Pointer schemesPtr = CryptoLibraryDirect.cryptoNetworkGetSupportedAddressSchemes(thisPtr, count);
         if (null != schemesPtr) {
             try {
-                int schemesSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                @SuppressWarnings("signedness:cast.unsafe")
+                @SignedPositive int schemesSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (int schemeInt: schemesPtr.getIntArray(0, schemesSize)) {
                     schemes.add(BRCryptoAddressScheme.fromCore(schemeInt));
                 }
@@ -301,7 +309,8 @@ public class BRCryptoNetwork extends PointerType {
         Pointer modesPtr = CryptoLibraryDirect.cryptoNetworkGetSupportedSyncModes(thisPtr, count);
         if (null != modesPtr) {
             try {
-                int modesSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                @SuppressWarnings("signedness:cast.unsafe")
+                @SignedPositive int modesSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (int modeInt: modesPtr.getIntArray(0, modesSize)) {
                     modes.add(BRCryptoSyncMode.fromCore(modeInt));
                 }

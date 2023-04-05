@@ -14,6 +14,8 @@ import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 public class BRCryptoTransfer extends PointerType {
 
     public BRCryptoTransfer() {
@@ -98,11 +100,12 @@ public class BRCryptoTransfer extends PointerType {
         ).transform(BRCryptoFeeBasis::new);
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getAttributeCount() {
         Pointer thisPtr = this.getPointer();
 
         return UnsignedLong.fromLongBits(
-                CryptoLibraryDirect.cryptoTransferGetAttributeCount(
+                (@Unsigned long) CryptoLibraryDirect.cryptoTransferGetAttributeCount(
                         thisPtr
                 ).longValue()
         );
