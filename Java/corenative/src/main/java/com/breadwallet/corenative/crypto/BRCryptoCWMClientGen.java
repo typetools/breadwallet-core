@@ -17,6 +17,7 @@ import com.sun.jna.Structure;
 import java.util.Arrays;
 import java.util.List;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
 
 public class BRCryptoCWMClientGen extends Structure {
 
@@ -35,8 +36,8 @@ public class BRCryptoCWMClientGen extends Structure {
                       Pointer manager,
                       Pointer callbackState,
                       String address,
-                      long begBlockNumber,
-                      long endBlockNumber);
+                      @SignedPositive long begBlockNumber,
+                      @SignedPositive long endBlockNumber);
     }
 
     public interface BRCryptoCWMGenGetTransfersCallback extends Callback {
@@ -44,8 +45,8 @@ public class BRCryptoCWMClientGen extends Structure {
                       Pointer manager,
                       Pointer callbackState,
                       String address,
-                      long begBlockNumber,
-                      long endBlockNumber);
+                      @SignedPositive long begBlockNumber,
+                      @SignedPositive long endBlockNumber);
     }
 
     public interface BRCryptoCWMGenSubmitTransactionCallback extends Callback {
@@ -83,16 +84,16 @@ public class BRCryptoCWMClientGen extends Structure {
                     BRCryptoWalletManager manager,
                     BRCryptoCWMClientCallbackState callbackState,
                     String address,
-                    long begBlockNumber,
-                    long endBlockNumber);
+                    @SignedPositive long begBlockNumber,
+                    @SignedPositive long endBlockNumber);
 
         @Override
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer callbackState,
                               String address,
-                              long begBlockNumber,
-                              long endBlockNumber) {
+                              @SignedPositive long begBlockNumber,
+                              @SignedPositive long endBlockNumber) {
             handle(
                     new Cookie(context),
                     new BRCryptoWalletManager(manager),
@@ -109,16 +110,16 @@ public class BRCryptoCWMClientGen extends Structure {
                     BRCryptoWalletManager manager,
                     BRCryptoCWMClientCallbackState callbackState,
                     String address,
-                    long begBlockNumber,
-                    long endBlockNumber);
+                    @SignedPositive long begBlockNumber,
+                    @SignedPositive long endBlockNumber);
 
         @Override
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer callbackState,
                               String address,
-                              long begBlockNumber,
-                              long endBlockNumber) {
+                              @SignedPositive long begBlockNumber,
+                              @SignedPositive long endBlockNumber) {
             handle(
                     new Cookie(context),
                     new BRCryptoWalletManager(manager),
@@ -138,6 +139,7 @@ public class BRCryptoCWMClientGen extends Structure {
                     String hashAsHex);
 
         @Override
+        @SuppressWarnings("signedness:cast.unsafe")
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer callbackState,
@@ -148,7 +150,7 @@ public class BRCryptoCWMClientGen extends Structure {
                     new Cookie(context),
                     new BRCryptoWalletManager(manager),
                     new BRCryptoCWMClientCallbackState(callbackState),
-                    tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue())),
+                    tx.getByteArray(0, (@SignedPositive int) UnsignedInts.checkedCast(txLength.longValue())),
                     hashAsHex
             );
         }

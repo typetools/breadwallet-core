@@ -17,6 +17,7 @@ import com.sun.jna.Structure;
 import java.util.Arrays;
 import java.util.List;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
 
 public class BRCryptoCWMClientBtc extends Structure {
 
@@ -36,8 +37,8 @@ public class BRCryptoCWMClientBtc extends Structure {
                       Pointer callbackState,
                       Pointer addrs,
                       SizeT addrCount,
-                      long begBlockNumber,
-                      long endBlockNumber);
+                      @SignedPositive long begBlockNumber,
+                      @SignedPositive long endBlockNumber);
     }
 
     public interface BRCryptoCWMBtcSubmitTransactionCallback extends Callback {
@@ -75,8 +76,8 @@ public class BRCryptoCWMClientBtc extends Structure {
                     BRCryptoWalletManager manager,
                     BRCryptoCWMClientCallbackState callbackState,
                     List<String> addresses,
-                    long begBlockNumber,
-                    long endBlockNumber);
+                    @SignedPositive long begBlockNumber,
+                    @SignedPositive long endBlockNumber);
 
         @Override
         default void callback(Pointer context,
@@ -84,9 +85,10 @@ public class BRCryptoCWMClientBtc extends Structure {
                               Pointer callbackState,
                               Pointer addrs,
                               SizeT addrCount,
-                              long begBlockNumber,
-                              long endBlockNumber) {
-            int addressesCount = UnsignedInts.checkedCast(addrCount.longValue());
+                              @SignedPositive long begBlockNumber,
+                              @SignedPositive long endBlockNumber) {
+            @SuppressWarnings("signedness:cast.unsafe")
+            @SignedPositive int addressesCount = (@SignedPositive int) UnsignedInts.checkedCast(addrCount.longValue());
             String[] addressesArray = addrs.getStringArray(0, addressesCount, "UTF-8");
             List<String> addressesList = Arrays.asList(addressesArray);
 
@@ -109,6 +111,7 @@ public class BRCryptoCWMClientBtc extends Structure {
                     String hashAsHex);
 
         @Override
+        @SuppressWarnings("signedness:cast.unsafe")
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer callbackState,
@@ -119,7 +122,7 @@ public class BRCryptoCWMClientBtc extends Structure {
                     new Cookie(context),
                     new BRCryptoWalletManager(manager),
                     new BRCryptoCWMClientCallbackState(callbackState),
-                    tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue())),
+                    tx.getByteArray(0, (@SignedPositive int) UnsignedInts.checkedCast(txLength.longValue())),
                     hashAsHex
             );
         }

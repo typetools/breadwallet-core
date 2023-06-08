@@ -117,6 +117,8 @@ import java.util.logging.Logger;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 /* package */
 final class System implements com.breadwallet.crypto.System {
 
@@ -1641,7 +1643,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void btcGetTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                    List<String> addresses, long begBlockNumber, long endBlockNumber) {
+                                    List<String> addresses, @SignedPositive long begBlockNumber, @SignedPositive long endBlockNumber) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
@@ -2001,7 +2003,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void ethGetTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                    String networkName, String address, long begBlockNumber, long endBlockNumber) {
+                                    String networkName, String address, @SignedPositive long begBlockNumber, @SignedPositive long endBlockNumber) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 Log.log(Level.FINE, String.format("BRCryptoCWMEthGetTransactionsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
@@ -2073,8 +2075,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void ethGetLogs(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                            String networkName, String contract, String address, String event, long begBlockNumber,
-                            long endBlockNumber) {
+                            String networkName, String contract, String address, String event, @SignedPositive long begBlockNumber,
+                            @SignedPositive long endBlockNumber) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 Log.log(Level.FINE, String.format("BRCryptoCWMEthGetLogsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
@@ -2140,8 +2142,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void ethGetBlocks(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                              String networkName, String address, int interests, long blockNumberStart,
-                              long blockNumberStop) {
+                              String networkName, String address, int interests, @SignedPositive long blockNumberStart,
+                              @SignedPositive long blockNumberStop) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 Log.log(Level.FINE, "BRCryptoCWMEthGetBlocksCallback");
@@ -2388,7 +2390,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void genGetTransactions(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                           String address, long begBlockNumber, long endBlockNumber) {
+                                           String address, @SignedPositive long begBlockNumber, @SignedPositive long endBlockNumber) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
@@ -2478,7 +2480,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void genGetTransfers(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                           String address, long begBlockNumber, long endBlockNumber) {
+                                           String address, @SignedPositive long begBlockNumber, @SignedPositive long endBlockNumber) {
         EXECUTOR_CLIENT.execute(() -> {
             try {
                 UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);

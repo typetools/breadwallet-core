@@ -55,6 +55,7 @@ public class BRCryptoCipher extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         SizeT length = CryptoLibraryDirect.cryptoCipherEncryptLength(thisPtr, input, new SizeT(input.length));
+        @SuppressWarnings("value:argument")  // length.longValue() should fit in an int
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
@@ -67,6 +68,7 @@ public class BRCryptoCipher extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         SizeT length = CryptoLibraryDirect.cryptoCipherDecryptLength(thisPtr, input, new SizeT(input.length));
+        @SuppressWarnings("value:argument")  // length.longValue() should fit in an int
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 

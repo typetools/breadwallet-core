@@ -89,6 +89,7 @@ public class BRCryptoHasher extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         SizeT length = CryptoLibraryDirect.cryptoHasherLength(thisPtr);
+        @SuppressWarnings("value:argument")  // length.longValue() should fit in an int
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 

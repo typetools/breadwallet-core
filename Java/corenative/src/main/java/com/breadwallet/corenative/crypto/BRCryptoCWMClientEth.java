@@ -15,6 +15,8 @@ import com.sun.jna.Structure;
 import java.util.Arrays;
 import java.util.List;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoCWMClientEth extends Structure {
 
     //
@@ -71,8 +73,8 @@ public class BRCryptoCWMClientEth extends Structure {
                       Pointer callbackState,
                       String networkName,
                       String address,
-                      long begBlockNumber,
-                      long endBlockNumber);
+                      @SignedPositive long begBlockNumber,
+                      @SignedPositive long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetLogsCallback extends Callback {
@@ -83,8 +85,8 @@ public class BRCryptoCWMClientEth extends Structure {
                       String contract,
                       String address,
                       String event,
-                      long begBlockNumber,
-                      long endBlockNumber);
+                      @SignedPositive long begBlockNumber,
+                      @SignedPositive long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetBlocksCallback extends Callback {
@@ -94,8 +96,8 @@ public class BRCryptoCWMClientEth extends Structure {
                       String networkName,
                       String address,
                       int interests,
-                      long blockNumberStart,
-                      long blockNumberStop);
+                      @SignedPositive long begBlockNumber,
+                      @SignedPositive long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetTokensCallback extends Callback {
@@ -246,8 +248,8 @@ public class BRCryptoCWMClientEth extends Structure {
                     BRCryptoCWMClientCallbackState callbackState,
                     String networkName,
                     String address,
-                    long begBlockNumber,
-                    long endBlockNumber);
+                    @SignedPositive long begBlockNumber,
+                    @SignedPositive long endBlockNumber);
 
         @Override
         default void callback(Pointer context,
@@ -255,8 +257,8 @@ public class BRCryptoCWMClientEth extends Structure {
                               Pointer callbackState,
                               String networkName,
                               String address,
-                              long begBlockNumber,
-                              long endBlockNumber) {
+                              @SignedPositive long begBlockNumber,
+                              @SignedPositive long endBlockNumber) {
             handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoCWMClientCallbackState(callbackState),
@@ -275,8 +277,8 @@ public class BRCryptoCWMClientEth extends Structure {
                     String contract,
                     String address,
                     String event,
-                    long begBlockNumber,
-                    long endBlockNumber);
+                    @SignedPositive long begBlockNumber,
+                    @SignedPositive long endBlockNumber);
 
         @Override
         default void callback(Pointer context,
@@ -286,8 +288,8 @@ public class BRCryptoCWMClientEth extends Structure {
                               String contract,
                               String address,
                               String event,
-                              long begBlockNumber,
-                              long endBlockNumber) {
+                              @SignedPositive long begBlockNumber,
+                              @SignedPositive long endBlockNumber) {
             handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoCWMClientCallbackState(callbackState),
@@ -307,8 +309,8 @@ public class BRCryptoCWMClientEth extends Structure {
                     String networkName,
                     String address,
                     int interests,
-                    long blockNumberStart,
-                    long blockNumberStop);
+                    @SignedPositive long blockNumberStart,
+                    @SignedPositive long blockNumberStop);
 
         @Override
         default void callback(Pointer context,
@@ -317,8 +319,8 @@ public class BRCryptoCWMClientEth extends Structure {
                               String networkName,
                               String address,
                               int interests,
-                              long blockNumberStart,
-                              long blockNumberStop) {
+                              @SignedPositive long blockNumberStart,
+                              @SignedPositive long blockNumberStop) {
             handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoCWMClientCallbackState(callbackState),

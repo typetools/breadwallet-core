@@ -27,6 +27,8 @@ import com.sun.jna.ptr.IntByReference;
 
 import java.nio.ByteBuffer;
 
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 public final class CryptoLibraryDirect {
 
     // The goal with this class is to remove any type values other than Java or JNA primitives. Each
@@ -124,7 +126,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoNetworkGetCurrency(Pointer network);
     public static native Pointer cryptoNetworkGetUnitAsDefault(Pointer network, Pointer currency);
     public static native Pointer cryptoNetworkGetUnitAsBase(Pointer network, Pointer currency);
-    public static native long cryptoNetworkGetHeight(Pointer network);
+    public static native @Unsigned long cryptoNetworkGetHeight(Pointer network);
     public static native int cryptoNetworkGetConfirmationsUntilFinal(Pointer network);
     public static native void cryptoNetworkSetConfirmationsUntilFinal(Pointer network, int confirmationsUntilFinal);
     public static native SizeT cryptoNetworkGetCurrencyCount(Pointer network);

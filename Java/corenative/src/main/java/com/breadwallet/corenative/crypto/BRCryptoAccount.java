@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import org.checkerframework.checker.signedness.qual.SignedPositive;
+
 public class BRCryptoAccount extends PointerType {
 
     public static BRCryptoAccount createFromPhrase(byte[] phraseUtf8, UnsignedLong timestamp, String uids) {
@@ -133,13 +135,14 @@ public class BRCryptoAccount extends PointerType {
         }
     }
 
+    @SuppressWarnings("signedness:cast.unsafe")
     public byte[] serialize() {
         Pointer thisPtr = this.getPointer();
 
         SizeTByReference bytesCount = new SizeTByReference();
         Pointer serializationPtr = CryptoLibraryDirect.cryptoAccountSerialize(thisPtr, bytesCount);
         try {
-            return serializationPtr.getByteArray(0, UnsignedInts.checkedCast(bytesCount.getValue().longValue()));
+            return serializationPtr.getByteArray(0, (@SignedPositive int) UnsignedInts.checkedCast(bytesCount.getValue().longValue()));
         } finally {
             Native.free(Pointer.nativeValue(serializationPtr));
         }
