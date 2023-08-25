@@ -41,7 +41,7 @@ public class BRCryptoNetwork extends PointerType {
 
         if (null != builtinsPtr) {
             try {
-                @SuppressWarnings("signedness:cast.unsafe")
+                //@SuppressWarnings("signedness:cast.unsafe")
                 @SignedPositive int builtinsSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer builtinPtr : builtinsPtr.getPointerArray(0, builtinsSize)) {
                     builtins.add(new BRCryptoNetwork(builtinPtr));
@@ -94,7 +94,7 @@ public class BRCryptoNetwork extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoNetworkHasCurrency(thisPtr, currency.getPointer());
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getCurrencyCount() {
         Pointer thisPtr = this.getPointer();
 
@@ -120,7 +120,7 @@ public class BRCryptoNetwork extends PointerType {
         Pointer feesPtr = CryptoLibraryDirect.cryptoNetworkGetNetworkFees(thisPtr, count);
         if (null != feesPtr) {
             try {
-                @SuppressWarnings("signedness:cast.unsafe")
+                //@SuppressWarnings("signedness:cast.unsafe")
                 @SignedPositive int feesSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer feePtr: feesPtr.getPointerArray(0, feesSize)) {
                     fees.add(new BRCryptoNetworkFee(feePtr));
@@ -236,7 +236,7 @@ public class BRCryptoNetwork extends PointerType {
         ).transform(BRCryptoUnit::new);
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getUnitCount(BRCryptoCurrency currency) {
         Pointer thisPtr = this.getPointer();
 
@@ -275,7 +275,7 @@ public class BRCryptoNetwork extends PointerType {
         Pointer schemesPtr = CryptoLibraryDirect.cryptoNetworkGetSupportedAddressSchemes(thisPtr, count);
         if (null != schemesPtr) {
             try {
-                @SuppressWarnings("signedness:cast.unsafe")
+                //@SuppressWarnings("signedness:cast.unsafe")
                 @SignedPositive int schemesSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (int schemeInt: schemesPtr.getIntArray(0, schemesSize)) {
                     schemes.add(BRCryptoAddressScheme.fromCore(schemeInt));
@@ -309,7 +309,7 @@ public class BRCryptoNetwork extends PointerType {
         Pointer modesPtr = CryptoLibraryDirect.cryptoNetworkGetSupportedSyncModes(thisPtr, count);
         if (null != modesPtr) {
             try {
-                @SuppressWarnings("signedness:cast.unsafe")
+                //@SuppressWarnings("signedness:cast.unsafe")
                 @SignedPositive int modesSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (int modeInt: modesPtr.getIntArray(0, modesSize)) {
                     modes.add(BRCryptoSyncMode.fromCore(modeInt));

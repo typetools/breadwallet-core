@@ -100,7 +100,7 @@ public class BRCryptoTransfer extends PointerType {
         ).transform(BRCryptoFeeBasis::new);
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getAttributeCount() {
         Pointer thisPtr = this.getPointer();
 

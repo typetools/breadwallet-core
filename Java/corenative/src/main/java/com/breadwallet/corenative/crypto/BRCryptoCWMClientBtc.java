@@ -87,7 +87,7 @@ public class BRCryptoCWMClientBtc extends Structure {
                               SizeT addrCount,
                               @SignedPositive long begBlockNumber,
                               @SignedPositive long endBlockNumber) {
-            @SuppressWarnings("signedness:cast.unsafe")
+            //@SuppressWarnings("signedness:cast.unsafe")
             @SignedPositive int addressesCount = (@SignedPositive int) UnsignedInts.checkedCast(addrCount.longValue());
             String[] addressesArray = addrs.getStringArray(0, addressesCount, "UTF-8");
             List<String> addressesList = Arrays.asList(addressesArray);
@@ -111,7 +111,7 @@ public class BRCryptoCWMClientBtc extends Structure {
                     String hashAsHex);
 
         @Override
-        @SuppressWarnings("signedness:cast.unsafe")
+        //@SuppressWarnings("signedness:cast.unsafe")
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer callbackState,

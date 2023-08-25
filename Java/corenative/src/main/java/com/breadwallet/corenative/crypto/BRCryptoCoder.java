@@ -54,7 +54,7 @@ public class BRCryptoCoder extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         SizeT length = CryptoLibraryDirect.cryptoCoderEncodeLength(thisPtr, input, new SizeT(input.length));
-        @SuppressWarnings("value:argument")  // length.longValue() should fit in an int
+        //@SuppressWarnings("value:argument")  // length.longValue() should fit in an int
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
@@ -71,7 +71,7 @@ public class BRCryptoCoder extends PointerType {
         byte[] inputWithTerminator = Arrays.copyOf(inputWithoutTerminator, inputWithoutTerminator.length + 1);
 
         SizeT length = CryptoLibraryDirect.cryptoCoderDecodeLength(thisPtr, inputWithTerminator);
-        @SuppressWarnings("value:argument")  // length.longValue() should fit in an int
+        //@SuppressWarnings("value:argument")  // length.longValue() should fit in an int
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 

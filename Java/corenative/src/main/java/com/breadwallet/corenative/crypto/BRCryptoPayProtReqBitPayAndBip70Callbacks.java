@@ -180,7 +180,7 @@ public class BRCryptoPayProtReqBitPayAndBip70Callbacks extends Structure {
         return Optional.of(certList);
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     private static int[] getNativeSizeTArray(Pointer ptr, int count) {
         int[] sizetArray = new int[count];
 

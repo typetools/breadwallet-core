@@ -94,7 +94,7 @@ public class BRCryptoWalletManager extends PointerType {
         Pointer walletsPtr = CryptoLibraryDirect.cryptoWalletManagerGetWallets(thisPtr, count);
         if (null != walletsPtr) {
             try {
-                @SuppressWarnings("signedness:cast.unsafe")
+                //@SuppressWarnings("signedness:cast.unsafe")
                 @SignedPositive int walletsSize = (@SignedPositive int) UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer walletPtr : walletsPtr.getPointerArray(0, walletsSize)) {
                     wallets.add(new BRCryptoWallet(walletPtr));

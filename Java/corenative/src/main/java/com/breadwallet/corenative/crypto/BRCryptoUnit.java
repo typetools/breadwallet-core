@@ -30,7 +30,7 @@ public class BRCryptoUnit extends PointerType {
 
     // decimals should be annotated @IntRange(from = 0, to = 255) but not allowed on non integer types
     public static BRCryptoUnit create(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, UnsignedInteger decimals) {
-        @SuppressWarnings({"signedness:cast.unsafe", "value:argument"})
+        //@SuppressWarnings({"signedness:cast.unsafe", "value:argument"})
         @Signed byte decimalsAsByte = (@Signed byte) UnsignedBytes.checkedCast(decimals.longValue());
         return new BRCryptoUnit(
                 CryptoLibraryDirect.cryptoUnitCreate(

@@ -135,7 +135,7 @@ public class BRCryptoAccount extends PointerType {
         }
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public byte[] serialize() {
         Pointer thisPtr = this.getPointer();
 

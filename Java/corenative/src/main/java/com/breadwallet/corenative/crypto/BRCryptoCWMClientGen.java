@@ -139,7 +139,7 @@ public class BRCryptoCWMClientGen extends Structure {
                     String hashAsHex);
 
         @Override
-        @SuppressWarnings("signedness:cast.unsafe")
+        //@SuppressWarnings("signedness:cast.unsafe")
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer callbackState,

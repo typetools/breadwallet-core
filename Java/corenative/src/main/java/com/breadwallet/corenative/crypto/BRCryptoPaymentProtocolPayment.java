@@ -41,7 +41,7 @@ public class BRCryptoPaymentProtocolPayment extends PointerType {
         super(address);
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public Optional<byte[]> encode() {
         Pointer thisPtr = this.getPointer();
 

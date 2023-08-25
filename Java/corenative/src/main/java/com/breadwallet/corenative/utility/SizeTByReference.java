@@ -26,7 +26,7 @@ public class SizeTByReference extends ByReference {
         setValue(value);
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public void setValue(UnsignedLong value) {
         if (Native.SIZE_T_SIZE == 8) {
             getPointer().setLong(0, value.longValue());
@@ -35,7 +35,7 @@ public class SizeTByReference extends ByReference {
         }
     }
 
-    @SuppressWarnings("signedness:cast.unsafe")
+    //@SuppressWarnings("signedness:cast.unsafe")
     public UnsignedLong getValue() {
         if (Native.SIZE_T_SIZE == 8) {
             return UnsignedLong.fromLongBits((@Unsigned long) getPointer().getLong(0));
